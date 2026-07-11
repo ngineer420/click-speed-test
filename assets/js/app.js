@@ -276,7 +276,7 @@
 
   shareBtn.addEventListener("click", () => {
     const text =
-      "I hit " + finalCpsValue.toFixed(1) + " CPS on Click Speed Test! Try to beat me: https://clickburst.io/";
+      "I hit " + finalCpsValue.toFixed(1) + " CPS on Click Speed Test! Try to beat me: https://cpsblast.com/";
     copyText(text);
     showToast("Copied!");
   });
