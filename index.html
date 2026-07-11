@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Click Speed Test - Measure Your Clicks Per Second (CPS)</title>
+<meta name="description" content="Free click speed test. Measure your clicks per second (CPS) in 5, 10, 30, or 60 second modes, or race to 100 clicks. Track your personal best and share your score — no sign-up, runs instantly in your browser.">
+<link rel="canonical" href="https://clickburst.io/">
+<meta name="theme-color" content="#0c0a0f">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Click Speed Test - Measure Your Clicks Per Second (CPS)">
+<meta property="og:description" content="How fast can you click? Test your clicks per second (CPS) across multiple time modes, beat your personal best, and challenge your friends.">
+<meta property="og:url" content="https://clickburst.io/">
+<meta property="og:image" content="https://clickburst.io/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Click Speed Test - Measure Your Clicks Per Second (CPS)">
+<meta name="twitter:description" content="How fast can you click? Test your clicks per second (CPS) across multiple time modes, beat your personal best, and challenge your friends.">
+<meta name="twitter:image" content="https://clickburst.io/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Click Speed Test",
+  "url": "https://clickburst.io/",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free browser-based click speed test that measures clicks per second (CPS) across multiple timed modes and a 100-click race mode."
+}
+</script>
+
+<!--
+  Ad monetization (Google AdSense placeholder)
+  ---------------------------------------------
+  1. Get approved at https://adsense.google.com using this site's live URL.
+  2. Replace ca-pub-XXXXXXXXXXXXXXXX below with your publisher ID.
+  3. Uncomment the <script> tag.
+  4. Replace the .ad-slot placeholder divs (#ad-top, #ad-inline, #ad-footer) with your real AdSense ad unit code.
+  Until then, .ad-slot elements render as empty placeholders and do nothing.
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+-->
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="clickburst.io home">
+      <span class="brand-mark"><span class="burst">⚡</span>clickburst</span>
+      <span class="brand-tag">click speed test</span>
+    </a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<div class="ad-slot ad-slot--leaderboard" id="ad-top" aria-hidden="true"></div>
+
+<main id="main">
+  <div class="hero">
+    <h1>Click Speed Test</h1>
+    <p>How many clicks per second (CPS) can you hit? Pick a mode, hit start, and click as fast as you can.</p>
+    <p class="trust-line">Free, no sign-up<span class="dot">•</span>Works on desktop &amp; mobile<span class="dot">•</span>Personal best saved locally</p>
+  </div>
+
+  <div class="game-panel" id="game-panel">
+    <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
+      <button class="mode-btn" type="button" data-mode="5">5 sec</button>
+      <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10 sec</button>
+      <button class="mode-btn" type="button" data-mode="30">30 sec</button>
+      <button class="mode-btn" type="button" data-mode="60">60 sec</button>
+      <button class="mode-btn" type="button" data-mode="100clicks">100 clicks</button>
+    </div>
+
+    <div id="play-view">
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">Clicks</div>
+          <div class="stat-value" id="stat-clicks">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label" id="stat-time-label">Time left</div>
+          <div class="stat-value" id="stat-time">10.0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">CPS</div>
+          <div class="stat-value" id="stat-cps">0.0</div>
+        </div>
+      </div>
+
+      <div class="target-wrap">
+        <button id="click-target" class="state-idle" type="button" aria-label="Click target — press Start first">
+          Press Start
+        </button>
+        <div class="target-hint" id="target-hint"></div>
+      </div>
+
+      <div class="controls-row">
+        <button id="start-btn" class="primary" type="button">Start</button>
+      </div>
+    </div>
+
+    <div class="results-panel" id="results-panel" hidden>
+      <div class="rating" id="result-rating"></div>
+      <div class="cps-big" id="result-cps">0.0<span class="unit"> CPS</span></div>
+      <div class="best-line" id="best-line"></div>
+
+      <div class="results-stat-row">
+        <div class="stat-box">
+          <div class="stat-label">Total clicks</div>
+          <div class="stat-value" id="result-clicks">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Elapsed time</div>
+          <div class="stat-value" id="result-time">0.0s</div>
+        </div>
+      </div>
+
+      <div class="controls-row">
+        <button id="share-btn" class="primary" type="button">Copy result</button>
+        <button id="retry-btn" type="button">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ad-slot ad-slot--inline" id="ad-inline" aria-hidden="true"></div>
+
+  <section class="container-narrow" style="padding-top:0;">
+    <h2 style="margin-top:0;">About this click speed test</h2>
+    <p>clickburst.io is a free click speed test that measures your <strong>clicks per second (CPS)</strong> — a common benchmark for reflexes, mouse control, and clicking technique used by gamers to compare Minecraft PvP click speed, jitter clicking, and butterfly clicking styles. Pick a duration (5, 10, 30, or 60 seconds) or race to 100 clicks as fast as possible, then see your CPS, a fun skill rating, and how you stack up against your own personal best.</p>
+    <p>Everything runs locally in your browser — your clicks and scores are never uploaded anywhere, and your personal best is stored only in this browser via <code>localStorage</code>.</p>
+
+    <h2>How is CPS calculated?</h2>
+    <p>CPS (clicks per second) is simply your total number of clicks divided by the elapsed time in seconds: <strong>CPS = total clicks ÷ elapsed seconds</strong>. In timed modes (5s/10s/30s/60s), the elapsed time is the fixed duration you selected. In 100-click mode, the elapsed time is however long it took you to land all 100 clicks, so a faster finish means a higher CPS.</p>
+
+    <div class="faq-item">
+      <h3>What's a good CPS score?</h3>
+      <p>Most people click between 4 and 7 times per second with a normal clicking technique. Above 8 CPS is considered fast, and scores past 10 CPS usually involve specialized techniques like jitter clicking or butterfly clicking rather than a single finger tapping normally.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Does mode length affect my CPS?</h3>
+      <p>Yes — shorter tests (like 5 seconds) tend to produce higher peak CPS because fatigue hasn't set in yet, while longer tests (30s or 60s) are a better measure of sustained clicking speed. Try a few modes to see the difference.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Does this work on mobile?</h3>
+      <p>Yes. The click target responds to both touch and mouse input, and clicks are counted once per tap or press — no double-counting between touch and mouse events.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Is my personal best saved anywhere online?</h3>
+      <p>No. Your personal best CPS is saved only in your browser's local storage on this device. Clearing your browser data or switching devices/browsers will reset it.</p>
+    </div>
+  </section>
+</main>
+
+<div class="ad-slot ad-slot--footer" id="ad-footer" aria-hidden="true"></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> clickburst.io</div>
+    <div class="footer-links">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>
