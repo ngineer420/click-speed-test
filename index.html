@@ -72,6 +72,7 @@
 
   <div class="game-panel" id="game-panel">
     <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
+      <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
       <button class="mode-btn" type="button" data-mode="5">5 sec</button>
       <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10 sec</button>
       <button class="mode-btn" type="button" data-mode="30">30 sec</button>
@@ -79,7 +80,7 @@
       <button class="mode-btn" type="button" data-mode="100clicks">100 clicks</button>
     </div>
 
-    <div id="play-view">
+    <div id="play-view" class="view-transition">
       <div class="stat-row">
         <div class="stat-box">
           <div class="stat-label">Clicks</div>
@@ -107,10 +108,25 @@
       </div>
     </div>
 
-    <div class="results-panel" id="results-panel" hidden>
+    <div class="results-panel view-transition" id="results-panel" hidden>
+      <div class="result-emoji" id="result-emoji" aria-hidden="true">🐢</div>
       <div class="rating" id="result-rating"></div>
+      <div class="stars" id="result-stars" aria-hidden="true"></div>
+
       <div class="cps-big" id="result-cps">0.0<span class="unit"> CPS</span></div>
+      <p class="tagline" id="result-tagline"></p>
       <div class="best-line" id="best-line"></div>
+
+      <div class="gauge" id="result-gauge">
+        <div class="gauge-track">
+          <div class="gauge-avg-marker" id="gauge-avg-marker" title="Average clicker (~6.5 CPS)"></div>
+          <div class="gauge-marker" id="gauge-marker"></div>
+        </div>
+        <div class="gauge-scale">
+          <span>Slow</span><span>Average</span><span>Superhuman</span>
+        </div>
+      </div>
+      <p class="comparison-text" id="comparison-text"></p>
 
       <div class="results-stat-row">
         <div class="stat-box">
@@ -121,6 +137,12 @@
           <div class="stat-label">Elapsed time</div>
           <div class="stat-value" id="result-time">0.0s</div>
         </div>
+      </div>
+
+      <div class="history-block" id="history-block" hidden>
+        <div class="history-label">Your last attempts</div>
+        <div class="history-bars" id="history-bars"></div>
+        <div class="history-trend" id="history-trend"></div>
       </div>
 
       <div class="controls-row">
