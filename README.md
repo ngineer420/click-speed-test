@@ -1,4 +1,4 @@
-# cpsblast.com
+# cpsboost.com
 
 A free, ad-supported click speed test that measures clicks per second (CPS).
 
@@ -34,26 +34,26 @@ assets/css/styles.css   Design system
 assets/js/app.js         All app logic (game state machine, CPS math, localStorage, clipboard)
 robots.txt                Search engine crawl rules
 sitemap.xml               Sitemap for search engines
-CNAME                      GitHub Pages custom domain (cpsblast.com)
+CNAME                      GitHub Pages custom domain (cpsboost.com)
 ```
 
 ## Enabling ads (Google AdSense)
 
-1. Deploy the site and get it live at cpsblast.com (or the github.io URL, see below).
+1. Deploy the site and get it live at cpsboost.com (or the github.io URL, see below).
 2. Apply at https://adsense.google.com with the live URL. Approval requires a working privacy policy (already included) and some real content/traffic — it isn't instant.
 3. Once approved, uncomment the AdSense `<script>` tag in `index.html`'s `<head>` and replace `ca-pub-XXXXXXXXXXXXXXXX` with your publisher ID.
 4. Fill in real ad units in place of the `.ad-slot` placeholder `<div>`s (`#ad-top`, `#ad-inline`, `#ad-footer`) with your AdSense ad unit code.
 
-## Custom domain (cpsblast.com)
+## Custom domain (cpsboost.com)
 
-The `CNAME` file tells GitHub Pages to serve this repo at `cpsblast.com`. **This domain has not been purchased yet** — it was only checked for apparent availability via DNS lookup. Until it's actually bought and DNS is configured, the site will only be reachable at its `github.io` URL (e.g. `https://ngineer420.github.io/click-speed-test/`); the CNAME file itself is harmless to leave in place ahead of time.
+The `CNAME` file tells GitHub Pages to serve this repo at `cpsboost.com`. **This domain has not been purchased yet** — it was only checked for apparent availability via DNS lookup. Until it's actually bought and DNS is configured, the site will only be reachable at its `github.io` URL (e.g. `https://ngineer420.github.io/click-speed-test/`); the CNAME file itself is harmless to leave in place ahead of time.
 
 Once the domain is purchased, point DNS at GitHub Pages:
 
-- Apex domain (`cpsblast.com`): four `A` records to `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
+- Apex domain (`cpsboost.com`): four `A` records to `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`.
 - `www` subdomain (optional): `CNAME` record to `<username>.github.io`.
 
-Then enable Pages in the repo's Settings → Pages, and enter `cpsblast.com` as the custom domain (GitHub will offer to enforce HTTPS once DNS propagates).
+Then enable Pages in the repo's Settings → Pages, and enter `cpsboost.com` as the custom domain (GitHub will offer to enforce HTTPS once DNS propagates).
 
 ## CPS calculation
 

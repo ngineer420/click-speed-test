@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cpsblast.com/sitemap.xml
+Sitemap: https://cpsboost.com/sitemap.xml
