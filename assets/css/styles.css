@@ -1,26 +1,29 @@
 /* cpsboost.com — design system
-   Retro arcade cabinet aesthetic. Dark, high-energy, system font stack
-   (zero external font requests) — the arcade feel comes from glow, chunky
-   notched panels, scanlines, and motion, not from a webfont. */
+   "Power Surge": a genuine retro-arcade palette (dark, magenta-tinted
+   background — never neutral gray — with ONE dominant saturated accent, one
+   secondary, and a third reserved strictly for rare celebratory moments, per
+   how real arcade marquee art and CRT-era UIs actually use color). System
+   font stack (zero external font requests) — the arcade feel comes from
+   glow, chunky notched panels, scanlines, and motion, not from a webfont. */
 
 :root {
-  --bg: #09070c;
-  --bg-raised: #17131b;
-  --bg-inset: #0a080c;
-  --border: #392e42;
-  --border-soft: #22192a;
-  --text: #f4eef8;
-  --text-dim: #ab9fb6;
-  --text-faint: #6b6473;
-  --accent: #ff5c35;
-  --accent-2: #ffb020;
-  --accent-dim: #c8461f;
-  --accent-contrast: #1a0a04;
-  --accent-glow: rgba(255, 92, 53, .55);
-  --cyan: #3ff0ff;
-  --cyan-glow: rgba(63, 240, 255, .5);
-  --magenta: #ff3fc0;
-  --magenta-glow: rgba(255, 63, 192, .5);
+  --bg: #170817;
+  --bg-raised: #29102a;
+  --bg-inset: #0e050e;
+  --border: #6b2f68;
+  --border-soft: #3b1a3a;
+  --text: #fff0fa;
+  --text-dim: #d0a3ca;
+  --text-faint: #8a678a;
+  --accent: #ff2d6b;
+  --accent-2: #ffd60a;
+  --accent-dim: #cc1f52;
+  --accent-contrast: #2a0414;
+  --accent-glow: rgba(255, 45, 107, .55);
+  --cyan: #00e0ff;
+  --cyan-glow: rgba(0, 224, 255, .5);
+  --magenta: #ff2d95;
+  --magenta-glow: rgba(255, 45, 149, .5);
   --danger: #ff5f56;
   --focus: #7cc6ff;
   --radius: 10px;
@@ -33,45 +36,45 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #faf8fb;
+  --bg: #fff0f5;
   --bg-raised: #ffffff;
-  --bg-inset: #f0edf2;
-  --border: #ddd7e0;
-  --border-soft: #e9e5eb;
-  --text: #181420;
-  --text-dim: #574f61;
-  --text-faint: #948c9c;
-  --accent: #e6491f;
-  --accent-2: #d9930f;
-  --accent-dim: #b83b18;
-  --accent-contrast: #fff7f4;
-  --accent-glow: rgba(230, 73, 31, .3);
-  --cyan: #0a8fa3;
-  --cyan-glow: rgba(10, 143, 163, .25);
-  --magenta: #b81c74;
-  --magenta-glow: rgba(184, 28, 116, .25);
+  --bg-inset: #ffe0ec;
+  --border: #e8a0c0;
+  --border-soft: #f5cfe0;
+  --text: #2a0a1a;
+  --text-dim: #6b2d4a;
+  --text-faint: #a3708c;
+  --accent: #c81f42;
+  --accent-2: #a8720b;
+  --accent-dim: #9c1836;
+  --accent-contrast: #fff5f8;
+  --accent-glow: rgba(200, 31, 66, .3);
+  --cyan: #0a7fa0;
+  --cyan-glow: rgba(10, 127, 160, .25);
+  --magenta: #b8185f;
+  --magenta-glow: rgba(184, 24, 95, .25);
   --focus: #0a6cbf;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --bg: #faf8fb;
+    --bg: #fff0f5;
     --bg-raised: #ffffff;
-    --bg-inset: #f0edf2;
-    --border: #ddd7e0;
-    --border-soft: #e9e5eb;
-    --text: #181420;
-    --text-dim: #574f61;
-    --text-faint: #948c9c;
-    --accent: #e6491f;
-    --accent-2: #d9930f;
-    --accent-dim: #b83b18;
-    --accent-contrast: #fff7f4;
-    --accent-glow: rgba(230, 73, 31, .3);
-    --cyan: #0a8fa3;
-    --cyan-glow: rgba(10, 143, 163, .25);
-    --magenta: #b81c74;
-    --magenta-glow: rgba(184, 28, 116, .25);
+    --bg-inset: #ffe0ec;
+    --border: #e8a0c0;
+    --border-soft: #f5cfe0;
+    --text: #2a0a1a;
+    --text-dim: #6b2d4a;
+    --text-faint: #a3708c;
+    --accent: #c81f42;
+    --accent-2: #a8720b;
+    --accent-dim: #9c1836;
+    --accent-contrast: #fff5f8;
+    --accent-glow: rgba(200, 31, 66, .3);
+    --cyan: #0a7fa0;
+    --cyan-glow: rgba(10, 127, 160, .25);
+    --magenta: #b8185f;
+    --magenta-glow: rgba(184, 24, 95, .25);
     --focus: #0a6cbf;
   }
 }
@@ -194,30 +197,13 @@ label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom
 
 /* ---------- layout shell ---------- */
 .site-header {
-  border-bottom: 2px solid var(--border);
+  border-bottom: 3px solid var(--accent);
+  box-shadow: 0 1px 0 0 var(--bg), 0 2px 0 0 var(--border);
   position: sticky;
   top: 0;
   background: color-mix(in srgb, var(--bg) 90%, transparent);
   backdrop-filter: blur(8px);
   z-index: 20;
-}
-.site-header::after {
-  content: "";
-  display: block;
-  height: 5px;
-  background-image: radial-gradient(circle, var(--accent) 1.6px, transparent 1.8px);
-  background-size: 14px 5px;
-  background-repeat: repeat-x;
-  opacity: .8;
-  filter: drop-shadow(0 0 2px var(--accent-glow));
-}
-@media (prefers-reduced-motion: no-preference) {
-  .site-header::after { animation: marquee-scroll 900ms steps(1) infinite; }
-}
-@keyframes marquee-scroll {
-  0% { background-position: 0 0; }
-  50% { background-position: 7px 0; }
-  100% { background-position: 14px 0; }
 }
 .header-inner {
   max-width: var(--maxw);
@@ -281,10 +267,24 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
 .container-narrow p, .container-narrow li { color: var(--text-dim); }
 
 /* ---------- hero ---------- */
-.hero { text-align: center; padding: 20px 0 24px; }
+.hero { text-align: center; padding: 24px 0 24px; }
+
+/* A literal backlit arcade-marquee sign: a bordered, notch-cornered panel
+   framing the title, like the illuminated header on a cabinet. */
+.hero-sign {
+  display: inline-block;
+  background: var(--bg-raised);
+  border: 3px solid var(--accent);
+  box-shadow:
+    inset 0 0 0 3px var(--bg),
+    inset 0 0 0 5px var(--border-soft),
+    0 0 34px -6px var(--accent-glow);
+  padding: 18px 32px;
+  margin: 0 auto 18px;
+}
 .hero h1 {
   font-size: clamp(24px, 4.4vw, 38px);
-  margin: 0 0 8px;
+  margin: 0;
   letter-spacing: -0.01em;
   text-transform: uppercase;
   text-shadow: 0 0 18px var(--accent-glow);
@@ -337,6 +337,7 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
 .game-panel,
 .stat-box,
 .badge,
+.hero-sign,
 .achievements-panel {
   border-radius: 0 !important;
   clip-path: polygon(
@@ -905,7 +906,6 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-header::after,
   .badge-pop,
   body {
     animation: none !important;
