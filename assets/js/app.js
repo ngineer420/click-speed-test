@@ -47,6 +47,259 @@
   const yearEl = document.getElementById("year");
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
+  /* ============================= gamification ============================= */
+
+  const PROFILE_KEY = "cbt-profile";
+  const SOUND_KEY = "cbt-sound-muted";
+  const COMBO_WINDOW_MS = 400;
+  const HEAT_WINDOW_MS = 1000;
+  const HEAT_TARGET_CPS = 12;
+
+  const RANK_TITLES = [
+    { level: 1, title: "Casual Clicker" },
+    { level: 2, title: "Quick Fingers" },
+    { level: 3, title: "Rapid Tapper" },
+    { level: 4, title: "Click Machine" },
+    { level: 5, title: "Turbo Clicker" },
+    { level: 6, title: "Blur Fingers" },
+    { level: 7, title: "Click Cyborg" },
+    { level: 8, title: "Neural Overclock" },
+    { level: 9, title: "Click Legend" },
+    { level: 10, title: "Click God" },
+  ];
+
+  function xpForLevel(level) { return 50 * level * (level - 1); }
+  function levelForXp(xp) {
+    let level = 1;
+    while (xp >= xpForLevel(level + 1)) level += 1;
+    return Math.min(level, RANK_TITLES.length);
+  }
+  function titleForLevel(level) {
+    const entry = RANK_TITLES[Math.min(level, RANK_TITLES.length) - 1];
+    return entry ? entry.title : RANK_TITLES[RANK_TITLES.length - 1].title;
+  }
+
+  const ACHIEVEMENTS = [
+    { id: "first_click", icon: "🎯", title: "First Click", desc: "Complete your first test.", check: (c) => c.totalSessions >= 1 },
+    { id: "century", icon: "💯", title: "Century Club", desc: "Land 100+ clicks in one session.", check: (c) => c.clicks >= 100 },
+    { id: "speed_demon", icon: "🚀", title: "Speed Demon", desc: "Hit 10+ CPS.", check: (c) => c.cps >= 10 },
+    { id: "superhuman", icon: "👑", title: "Superhuman Clicks", desc: "Hit 13+ CPS.", check: (c) => c.cps >= 13 },
+    { id: "marathon", icon: "⏱️", title: "Marathon Clicker", desc: "Complete the 60-second mode.", check: (c) => c.completedSixty },
+    { id: "combo_20", icon: "⚡", title: "Combo x20", desc: "Reach a 20-click combo.", check: (c) => c.maxCombo >= 20 },
+    { id: "pb_breaker", icon: "🏆", title: "Record Breaker", desc: "Beat your personal best 5 times.", check: (c) => c.pbBeatenCount >= 5 },
+    { id: "streak_3", icon: "🔥", title: "3-Day Streak", desc: "Play 3 days in a row.", check: (c) => c.streak >= 3 },
+    { id: "streak_7", icon: "🔥", title: "Week Warrior", desc: "Play 7 days in a row.", check: (c) => c.streak >= 7 },
+    { id: "streak_30", icon: "🔥", title: "Monthly Grind", desc: "Play 30 days in a row.", check: (c) => c.streak >= 30 },
+    { id: "sessions_10", icon: "🕹️", title: "Arcade Regular", desc: "Complete 10 test sessions.", check: (c) => c.totalSessions >= 10 },
+    { id: "sessions_50", icon: "🕹️", title: "Arcade Veteran", desc: "Complete 50 test sessions.", check: (c) => c.totalSessions >= 50 },
+    { id: "level_5", icon: "⭐", title: "Rising Star", desc: "Reach level 5.", check: (c) => c.level >= 5 },
+    { id: "level_10", icon: "👑", title: "Click God", desc: "Reach the max level.", check: (c) => c.level >= 10 },
+  ];
+
+  function loadProfile() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PROFILE_KEY));
+      if (raw && typeof raw === "object") {
+        return Object.assign(
+          { totalXP: 0, totalSessions: 0, pbBeatenCount: 0, streak: 0, lastPlayedDate: null, achievements: [] },
+          raw
+        );
+      }
+    } catch (e) { /* ignore */ }
+    return { totalXP: 0, totalSessions: 0, pbBeatenCount: 0, streak: 0, lastPlayedDate: null, achievements: [] };
+  }
+
+  function saveProfile(profile) {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch (e) { /* ignore */ }
+  }
+
+  function dateKey(d) { return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+
+  function updateStreak(profile, now) {
+    const today = dateKey(now);
+    if (profile.lastPlayedDate === today) return profile.streak;
+    const yesterday = dateKey(new Date(now.getTime() - 86400000));
+    profile.streak = profile.lastPlayedDate === yesterday ? profile.streak + 1 : 1;
+    profile.lastPlayedDate = today;
+    return profile.streak;
+  }
+
+  function xpForSessionCps(rating, isNewBest, isFirstBest, completedSixty, maxCombo) {
+    let xp = 10;
+    if (rating === "Superhuman") xp += 45;
+    else if (rating === "Elite Clicker") xp += 32;
+    else if (rating === "Pro Clicker") xp += 22;
+    else if (rating === "Skilled Clicker") xp += 14;
+    else if (rating === "Casual Clicker") xp += 8;
+    else xp += 4;
+    if (isNewBest && !isFirstBest) xp += 30;
+    if (completedSixty) xp += 12;
+    if (maxCombo >= 20) xp += 10;
+    return xp;
+  }
+
+  function recordSession({ cps, clicks, isNewBest, isFirstBest, completedSixty, maxCombo, now }) {
+    const profile = loadProfile();
+    const prevLevel = levelForXp(profile.totalXP);
+
+    profile.totalSessions += 1;
+    if (isNewBest && !isFirstBest) profile.pbBeatenCount += 1;
+    const streak = updateStreak(profile, now);
+    const gained = xpForSessionCps(getRating(cps), isNewBest, isFirstBest, completedSixty, maxCombo);
+    profile.totalXP += gained;
+    const newLevel = levelForXp(profile.totalXP);
+
+    const ctx = {
+      cps,
+      clicks,
+      totalSessions: profile.totalSessions,
+      pbBeatenCount: profile.pbBeatenCount,
+      streak,
+      completedSixty,
+      maxCombo,
+      level: newLevel,
+    };
+    const newlyUnlocked = [];
+    ACHIEVEMENTS.forEach((a) => {
+      if (profile.achievements.indexOf(a.id) === -1 && a.check(ctx)) {
+        profile.achievements.push(a.id);
+        newlyUnlocked.push(a);
+      }
+    });
+
+    saveProfile(profile);
+    return { profile, xpGained: gained, leveledUp: newLevel > prevLevel, newLevel, newlyUnlocked };
+  }
+
+  /* ---------- gamification rendering ---------- */
+
+  const chipLevel = document.getElementById("chip-level");
+  const chipStreak = document.getElementById("chip-streak");
+  const xpRankLabel = document.getElementById("xp-rank-label");
+  const xpProgressLabel = document.getElementById("xp-progress-label");
+  const xpBarFill = document.getElementById("xp-bar-fill");
+  const achievementsGrid = document.getElementById("achievements-grid");
+  const unlockStack = document.getElementById("unlock-stack");
+
+  function renderStatusChips(profile) {
+    const level = levelForXp(profile.totalXP);
+    if (chipLevel) chipLevel.textContent = "LV " + level;
+    if (chipStreak) {
+      chipStreak.textContent = "🔥" + profile.streak;
+      chipStreak.classList.toggle("is-zero", profile.streak === 0);
+    }
+    if (xpRankLabel) xpRankLabel.textContent = titleForLevel(level);
+    if (xpProgressLabel && xpBarFill) {
+      const base = xpForLevel(level);
+      const next = xpForLevel(level + 1);
+      const span = next - base || 1;
+      const into = Math.max(0, profile.totalXP - base);
+      const pct = level >= RANK_TITLES.length ? 100 : Math.min(100, (into / span) * 100);
+      xpProgressLabel.textContent = level >= RANK_TITLES.length ? "MAX LEVEL" : into + " / " + span + " XP";
+      xpBarFill.style.width = pct + "%";
+    }
+  }
+
+  function renderAchievements(profile) {
+    if (!achievementsGrid) return;
+    achievementsGrid.innerHTML = ACHIEVEMENTS.map((a) => {
+      const unlocked = profile.achievements.indexOf(a.id) !== -1;
+      return (
+        `<div class="badge${unlocked ? " unlocked" : ""}" title="${a.title}: ${a.desc}">` +
+        `<span class="badge-icon" aria-hidden="true">${a.icon}</span>` +
+        `<span class="badge-title">${a.title}</span>` +
+        `</div>`
+      );
+    }).join("");
+  }
+
+  function queueUnlockToasts(items, kickerFor) {
+    if (!unlockStack || !items.length) return;
+    items.forEach((item, i) => {
+      setTimeout(() => {
+        const el = document.createElement("div");
+        el.className = "unlock-toast";
+        el.innerHTML =
+          `<span class="unlock-icon" aria-hidden="true">${item.icon}</span>` +
+          `<span class="unlock-text"><span class="unlock-kicker">${kickerFor(item)}</span>` +
+          `<span class="unlock-title">${item.title}</span></span>`;
+        unlockStack.appendChild(el);
+        playAchievementChime();
+        setTimeout(() => el.remove(), 3600);
+      }, i * 550);
+    });
+  }
+
+  /* ---------- arcade sound synth (WebAudio, no audio files) ---------- */
+
+  let audioCtx = null;
+  let soundMuted = false;
+  try { soundMuted = localStorage.getItem(SOUND_KEY) === "1"; } catch (e) { /* ignore */ }
+
+  function getAudioCtx() {
+    if (audioCtx) return audioCtx;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+    return audioCtx;
+  }
+
+  function playTone(freq, startOffset, duration, type, peakGain) {
+    if (soundMuted) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+    const t0 = ctx.currentTime + startOffset;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(peakGain || 0.07, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  }
+
+  function playClickTick(pitchBoost) {
+    playTone(720 + Math.min(pitchBoost || 0, 400), 0, 0.045, "square", 0.035);
+  }
+  function playMilestoneBoom() { playTone(160, 0, 0.2, "sawtooth", 0.06); }
+  function playAchievementChime() {
+    [660, 880, 1320].forEach((f, i) => playTone(f, i * 0.09, 0.16, "triangle", 0.07));
+  }
+  function playLevelUpFanfare() {
+    [523, 659, 784, 1046, 1318].forEach((f, i) => playTone(f, i * 0.08, 0.22, "square", 0.06));
+  }
+  function playNewBestSparkle() {
+    [988, 1318, 1568, 2093].forEach((f, i) => playTone(f, i * 0.06, 0.14, "sine", 0.07));
+  }
+
+  const soundToggleBtn = document.getElementById("sound-toggle");
+  function renderSoundToggle() {
+    if (!soundToggleBtn) return;
+    soundToggleBtn.textContent = soundMuted ? "🔇" : "🔊";
+  }
+  if (soundToggleBtn) {
+    soundToggleBtn.addEventListener("click", () => {
+      soundMuted = !soundMuted;
+      try { localStorage.setItem(SOUND_KEY, soundMuted ? "1" : "0"); } catch (e) { /* ignore */ }
+      renderSoundToggle();
+      if (!soundMuted) playClickTick(0);
+    });
+    renderSoundToggle();
+  }
+
+  const statusChipBtn = document.getElementById("status-chip");
+  if (statusChipBtn) {
+    statusChipBtn.addEventListener("click", () => {
+      const panel = document.getElementById("achievements-panel");
+      if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   /* ============================= game state ============================= */
 
   const PB_KEY = "cbt-best-cps";
@@ -107,6 +360,10 @@
   let countdownTimer = null;
   let countdownRunTimer = null;
   let finalCpsValue = 0;
+  let comboCount = 0;
+  let maxCombo = 0;
+  let lastClickAt = 0;
+  let recentClickTimes = [];
 
   function isTimedMode() {
     return mode !== "100clicks";
@@ -174,6 +431,7 @@
     clickTarget.className = "state-idle";
     clickTarget.textContent = "Press Start";
     clickTarget.disabled = true;
+    clickTarget.style.setProperty("--heat", "0");
     targetHint.textContent = "";
     startBtn.disabled = false;
     startBtn.textContent = "Start";
@@ -238,6 +496,11 @@
     clicks = 0;
     startTime = performance.now();
     elapsedMs = 0;
+    comboCount = 0;
+    maxCombo = 0;
+    lastClickAt = 0;
+    recentClickTimes = [];
+    clickTarget.style.setProperty("--heat", "0");
     clickTarget.className = "state-running";
     clickTarget.disabled = false;
     clickTarget.textContent = "CLICK!";
@@ -289,10 +552,63 @@
     elapsedMs = now - startTime;
     statCps.textContent = computeCps(clicks, elapsedMs).toFixed(1);
 
+    // Combo: consecutive clicks within COMBO_WINDOW_MS of each other build a
+    // streak; a bigger gap (hesitation) resets it. Purely a feel/reward layer,
+    // never touches the real CPS calculation above.
+    comboCount = now - lastClickAt <= COMBO_WINDOW_MS ? comboCount + 1 : 1;
+    lastClickAt = now;
+    maxCombo = Math.max(maxCombo, comboCount);
+    if (comboCount > 0 && comboCount % 5 === 0) spawnComboFloat(e, comboCount);
+
+    // Heat: rolling CPS over the trailing HEAT_WINDOW_MS drives a glow that
+    // intensifies the faster the recent clicking has been.
+    recentClickTimes.push(now);
+    recentClickTimes = recentClickTimes.filter((t) => now - t <= HEAT_WINDOW_MS);
+    const rollingCps = recentClickTimes.length / (HEAT_WINDOW_MS / 1000);
+    const heat = Math.max(0, Math.min(1, rollingCps / HEAT_TARGET_CPS));
+    clickTarget.style.setProperty("--heat", heat.toFixed(2));
+
+    playClickTick(comboCount * 8);
+
+    if (clicks % 25 === 0) {
+      clickTarget.classList.remove("milestone-shake");
+      void clickTarget.offsetWidth;
+      clickTarget.classList.add("milestone-shake");
+      playMilestoneBoom();
+    }
+
     if (!isTimedMode() && clicks >= 100) {
       finishRun();
     }
   });
+
+  /* Floating "COMBO x N" text spawned at the click point — same throwaway-DOM-node
+     pattern as spawnRipple, capped the same way so rapid clicking can't pile up nodes. */
+  function spawnComboFloat(e, combo) {
+    const rect = clickTarget.getBoundingClientRect();
+    const hasCoords = typeof e.clientX === "number" && e.isPrimary !== false;
+    const x = hasCoords ? e.clientX - rect.left : rect.width / 2;
+    const y = hasCoords ? e.clientY - rect.top : rect.height / 2;
+
+    const el = document.createElement("span");
+    el.className = "combo-float";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.textContent = "COMBO x" + combo;
+    clickTarget.appendChild(el);
+
+    let removed = false;
+    const remove = () => {
+      if (removed) return;
+      removed = true;
+      el.remove();
+    };
+    el.addEventListener("animationend", remove);
+    setTimeout(remove, 700);
+
+    const floats = clickTarget.querySelectorAll(".combo-float");
+    if (floats.length > 4) floats[0].remove();
+  }
 
   /* Per-click visual feedback: a lightweight ripple burst from the exact
      click/tap point. Purely cosmetic — never touches the click counter
@@ -338,6 +654,7 @@
     clickTarget.disabled = true;
     clickTarget.className = "state-finished";
     clickTarget.textContent = "Done!";
+    clickTarget.style.setProperty("--heat", "0");
     startBtn.disabled = false;
     startBtn.textContent = "Start";
 
@@ -348,6 +665,7 @@
 
     const best = getBest();
     const isNewBest = finalCpsValue > best;
+    const isFirstBest = best === 0;
     if (isNewBest) setBest(finalCpsValue);
 
     resultRating.textContent = rating;
@@ -369,6 +687,26 @@
 
     const history = pushHistory(finalCpsValue);
     renderHistory(history);
+
+    const gameResult = recordSession({
+      cps: finalCpsValue,
+      clicks,
+      isNewBest,
+      isFirstBest,
+      completedSixty: mode === "60",
+      maxCombo,
+      now: new Date(),
+    });
+    renderStatusChips(gameResult.profile);
+    renderAchievements(gameResult.profile);
+
+    if (isNewBest && !isFirstBest) playNewBestSparkle();
+    if (gameResult.leveledUp) {
+      setTimeout(playLevelUpFanfare, gameResult.newlyUnlocked.length ? 700 : 0);
+    }
+    queueUnlockToasts(gameResult.newlyUnlocked, () =>
+      gameResult.leveledUp ? "Achievement Unlocked · LV " + gameResult.newLevel : "Achievement Unlocked"
+    );
 
     switchView(playView, resultsPanel);
   }
@@ -486,8 +824,11 @@
   /* ---------- share / copy result ---------- */
 
   shareBtn.addEventListener("click", () => {
+    const profile = loadProfile();
+    const rank = titleForLevel(levelForXp(profile.totalXP));
     const text =
-      "I hit " + finalCpsValue.toFixed(1) + " CPS on Click Speed Test! Try to beat me: https://cpsboost.com/";
+      "I hit " + finalCpsValue.toFixed(1) + " CPS on Click Speed Test (" + rank + ", LV " +
+      levelForXp(profile.totalXP) + ")! Try to beat me: https://cpsboost.com/";
     copyText(text);
     showToast("Copied!");
   });
@@ -527,4 +868,6 @@
 
   resetToIdle(false);
   requestAnimationFrame(updateModeIndicator);
+  renderStatusChips(loadProfile());
+  renderAchievements(loadProfile());
 })();
