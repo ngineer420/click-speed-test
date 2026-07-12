@@ -6,7 +6,7 @@
 <title>Click Speed Test - Measure Your Clicks Per Second (CPS)</title>
 <meta name="description" content="Free click speed test. Measure your clicks per second (CPS) in 5, 10, 30, or 60 second modes, or race to 100 clicks. Track your personal best and share your score — no sign-up, runs instantly in your browser.">
 <link rel="canonical" href="https://cpsboost.com/">
-<meta name="theme-color" content="#0c0a0f">
+<meta name="theme-color" content="#09070c">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Click Speed Test - Measure Your Clicks Per Second (CPS)">
@@ -56,6 +56,11 @@
       <span class="brand-tag">click speed test</span>
     </a>
     <div class="header-actions">
+      <button id="status-chip" class="status-chip" type="button" title="View your rank, streak &amp; achievements">
+        <span class="chip-level" id="chip-level">LV 1</span>
+        <span class="chip-streak is-zero" id="chip-streak">🔥0</span>
+      </button>
+      <button id="sound-toggle" class="icon-btn" type="button" aria-label="Toggle sound effects" title="Toggle sound">🔊</button>
       <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
     </div>
   </div>
@@ -68,6 +73,10 @@
     <h1>Click Speed Test</h1>
     <p>How many clicks per second (CPS) can you hit? Pick a mode, hit start, and click as fast as you can.</p>
     <p class="trust-line">Free, no sign-up<span class="dot">•</span>Works on desktop &amp; mobile<span class="dot">•</span>Personal best saved locally</p>
+    <div class="xp-bar-wrap">
+      <div class="xp-bar-label"><span class="xp-rank" id="xp-rank-label">Casual Clicker</span><span id="xp-progress-label">0 / 100 XP</span></div>
+      <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
+    </div>
   </div>
 
   <div class="game-panel" id="game-panel">
@@ -152,6 +161,11 @@
     </div>
   </div>
 
+  <section class="achievements-panel" id="achievements-panel">
+    <h2>Achievements</h2>
+    <div class="achievements-grid" id="achievements-grid"></div>
+  </section>
+
   <div class="ad-slot ad-slot--inline" id="ad-inline" aria-hidden="true"></div>
 
   <section class="container-narrow" style="padding-top:0;">
@@ -184,6 +198,7 @@
 <div class="ad-slot ad-slot--footer" id="ad-footer" aria-hidden="true"></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="unlock-stack" id="unlock-stack" aria-live="polite"></div>
 
 <footer class="site-footer">
   <div class="footer-inner">
