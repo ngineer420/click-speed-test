@@ -24,7 +24,7 @@
   --danger: #ff5f56;
   --focus: #7cc6ff;
   --radius: 10px;
-  --notch: 12px;
+  --notch: 5px;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Menlo", "Consolas",
@@ -81,13 +81,21 @@ html { color-scheme: dark light; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    repeating-conic-gradient(rgba(255,255,255,.018) 0% 25%, transparent 0% 50%) 0 0 / 3px 3px,
+    var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   position: relative;
+  animation: crt-power-on 420ms ease-out;
+}
+@keyframes crt-power-on {
+  0% { filter: brightness(2.4) saturate(0); opacity: 0; }
+  35% { filter: brightness(1.35) saturate(.6); opacity: 1; }
+  100% { filter: brightness(1) saturate(1); opacity: 1; }
 }
 
 /* ---------- CRT scanline + vignette overlay ---------- */
@@ -196,18 +204,20 @@ label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom
 .site-header::after {
   content: "";
   display: block;
-  height: 3px;
-  background-image: repeating-linear-gradient(
-    to right, var(--accent) 0 6px, transparent 6px 14px
-  );
-  opacity: .55;
+  height: 5px;
+  background-image: radial-gradient(circle, var(--accent) 1.6px, transparent 1.8px);
+  background-size: 14px 5px;
+  background-repeat: repeat-x;
+  opacity: .8;
+  filter: drop-shadow(0 0 2px var(--accent-glow));
 }
 @media (prefers-reduced-motion: no-preference) {
-  .site-header::after { animation: marquee-scroll 3.2s linear infinite; }
+  .site-header::after { animation: marquee-scroll 900ms steps(1) infinite; }
 }
 @keyframes marquee-scroll {
-  from { background-position: 0 0; }
-  to { background-position: 28px 0; }
+  0% { background-position: 0 0; }
+  50% { background-position: 7px 0; }
+  100% { background-position: 14px 0; }
 }
 .header-inner {
   max-width: var(--maxw);
@@ -229,9 +239,11 @@ label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom
   gap: 6px;
   text-shadow: 0 0 12px var(--accent-glow);
 }
-.brand-mark .burst {
-  color: var(--accent);
-  filter: drop-shadow(0 0 6px var(--accent-glow));
+.brand-mark .cursor-mascot {
+  width: 20px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 5px var(--accent-glow));
 }
 .brand-tag { color: var(--text-faint); font-size: 12px; display: none; text-transform: none; letter-spacing: normal; }
 @media (min-width: 640px) { .brand-tag { display: inline; } }
@@ -317,12 +329,27 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
   width: 0%;
 }
 
-/* ---------- pixel-notch panel utility ---------- */
-.pixel-notch {
+/* ---------- pixel-corners panel utility ----------
+   A genuine 2-step staircase cut on each corner (not a smooth diagonal
+   chamfer) so raised surfaces read as chunky 8-bit panels rather than
+   modern rounded cards. Parameterized by --notch (one staircase step). */
+.pixel-corners,
+.game-panel,
+.stat-box,
+.badge,
+.achievements-panel {
+  border-radius: 0 !important;
   clip-path: polygon(
-    var(--notch) 0, calc(100% - var(--notch)) 0, 100% var(--notch),
-    100% calc(100% - var(--notch)), calc(100% - var(--notch)) 100%, var(--notch) 100%,
-    0 calc(100% - var(--notch)), 0 var(--notch)
+    calc(var(--notch) * 2) 0, calc(100% - var(--notch) * 2) 0,
+    calc(100% - var(--notch) * 2) var(--notch), calc(100% - var(--notch)) var(--notch),
+    calc(100% - var(--notch)) calc(var(--notch) * 2), 100% calc(var(--notch) * 2),
+    100% calc(100% - var(--notch) * 2), calc(100% - var(--notch)) calc(100% - var(--notch) * 2),
+    calc(100% - var(--notch)) calc(100% - var(--notch)), calc(100% - var(--notch) * 2) calc(100% - var(--notch)),
+    calc(100% - var(--notch) * 2) 100%, calc(var(--notch) * 2) 100%,
+    calc(var(--notch) * 2) calc(100% - var(--notch)), var(--notch) calc(100% - var(--notch)),
+    var(--notch) calc(100% - var(--notch) * 2), 0 calc(100% - var(--notch) * 2),
+    0 calc(var(--notch) * 2), var(--notch) calc(var(--notch) * 2),
+    var(--notch) var(--notch), calc(var(--notch) * 2) var(--notch)
   );
 }
 
@@ -879,7 +906,8 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
 
 @media (prefers-reduced-motion: reduce) {
   .site-header::after,
-  .badge-pop {
+  .badge-pop,
+  body {
     animation: none !important;
   }
   .unlock-toast { animation: none !important; }
