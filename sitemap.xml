@@ -6,6 +6,26 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://cpsboost.com/articles/history-of-click-speed-tests.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://cpsboost.com/articles/clicking-techniques.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://cpsboost.com/articles/what-is-a-good-cps.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://cpsboost.com/articles/how-this-test-works.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://cpsboost.com/privacy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>

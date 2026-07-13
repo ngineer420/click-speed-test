@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How This Click Speed Test Works (and Why We Built It) — cpsboost.com</title>
+<meta name="description" content="A look under the hood of our CPS test: how clicks are counted in the browser, how timing works, why results vary between devices and mice, and the design decisions behind the site.">
+<link rel="canonical" href="https://cpsboost.com/articles/how-this-test-works.html">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7560786263587509" crossorigin="anonymous"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="cpsboost.com home">
+      <span class="brand-mark"><span class="burst">⚡</span>cpsboost</span>
+      <span class="brand-tag">click speed test</span>
+    </a>
+  </div>
+</header>
+<main class="container-narrow">
+  <h1>How This Click Speed Test Works (and Why We Built It)</h1>
+
+  <p>A click speed test looks like the simplest possible web page: a button, a timer, a number. Under the hood there are a surprising number of decisions that affect whether the number you see is honest — how clicks are counted, how time is measured, and what happens at the messy edges where browsers, mice, and touchscreens disagree with each other. This page explains how <a href="/">our test</a> handles those decisions, and why we built it the way we did.</p>
+
+  <h2>The core formula</h2>
+  <p>CPS is total clicks divided by elapsed seconds. That's the whole formula, and both halves need to be measured correctly for the result to mean anything.</p>
+  <p>In the timed modes (5, 10, 30, or 60 seconds), the denominator is fixed: click as much as you can and we divide by the duration you chose. In the 100-click race mode it's inverted — the click count is fixed at 100 and the clock is what varies, so finishing faster yields a higher CPS. The race mode exists because it changes the psychology: instead of pacing yourself against a countdown, you're sprinting toward a finish line, and many people find they click measurably faster that way.</p>
+
+  <h2>Counting clicks: why we listen for pointerdown</h2>
+  <p>The obvious way to count clicks in a browser is the <code>click</code> event, and it's the wrong one. A <code>click</code> only fires after a full press-and-release cycle completes on the same element, which adds latency and can swallow presses during very rapid clicking, when a release might land slightly off-target. Instead, this test counts <code>pointerdown</code> events — the earliest moment the browser knows your button or finger went down. Nothing about your release timing affects the count.</p>
+  <p>Using the Pointer Events API also solves the classic double-counting bug that plagued older click testers on phones. Touch input historically fired both a touch event <em>and</em> a synthesized mouse event for compatibility, so a naive tester that listened for both would count every tap twice. Pointer events unify mouse, touch, and stylus into a single stream, so one physical press is one <code>pointerdown</code>, whatever device produced it. That's how the same test works on desktop and mobile without inflating either.</p>
+  <p>One thing we deliberately do <em>not</em> do is filter &ldquo;implausibly fast&rdquo; clicks. If your mouse registers a burst — say, from drag clicking, or from a worn switch that double-fires — we count what the operating system reports. A browser page has no reliable way to distinguish a hardware double-click from a genuinely fast human, and guessing would make results less trustworthy, not more.</p>
+
+  <h2>Measuring time: performance.now() and honest endpoints</h2>
+  <p>For the clock, the test uses <code>performance.now()</code>, the browser's high-resolution monotonic timer, rather than the wall-clock <code>Date.now()</code>. The distinction matters: the wall clock can jump around (NTP sync, timezone changes, the OS adjusting itself), while the monotonic clock only ever moves forward at a steady rate. For a measurement where a 2% timing error means a 2% CPS error, that's the correct tool.</p>
+  <p>The on-screen countdown and live CPS readout update on a <code>requestAnimationFrame</code> loop — once per display frame — but that's purely cosmetic. Your clicks are timestamped and counted by their own events, independently of how often the display repaints, so a janky frame rate can't eat your clicks. When a timed mode ends, the elapsed time is clamped to exactly the mode's duration, so a frame arriving a few milliseconds late can't quietly stretch your denominator and shave your score.</p>
+  <p>There's also a short countdown before the timer starts, and the timer begins at the start signal rather than on your first click. Starting the clock on the first click sounds generous but subtly inflates scores (your first click is &ldquo;free&rdquo;), and different sites choosing differently is one reason the same person gets different numbers on different testers.</p>
+
+  <h2>Why your results vary between devices</h2>
+  <p>Take the same test on two computers and you may score differently. Some of that is you — chair height, mouse familiarity, warm-up — but some is genuinely the hardware:</p>
+  <ul>
+    <li><strong>Switch debounce.</strong> Mouse firmware waits a few milliseconds after each click to filter electrical noise before it will register another. A mouse with 20ms of debounce physically cannot report more than ~50 clicks per second, and aggressive debounce can clip legitimate fast clicking. Gaming mice often let you tune this.</li>
+    <li><strong>Polling rate.</strong> A mouse reporting at 125Hz batches its news in 8ms intervals; at 1000Hz, 1ms. This mostly affects latency rather than count, but at extreme click rates coarser polling adds jitter to when clicks land.</li>
+    <li><strong>Touchscreens.</strong> Taps involve firmware-level gesture processing, so mobile scores usually run a little lower than mouse scores for the same person. Comparing phone scores to desktop scores is comparing different sports.</li>
+    <li><strong>Background load.</strong> A heavily loaded machine can delay event delivery. The count survives, but if you're benchmarking yourself seriously, close the forty other tabs first.</li>
+  </ul>
+  <p>The practical upshot: CPS scores are most meaningful as comparisons against yourself, on the same device, in the same mode. That's why the site frames your result against your own personal best and recent attempts rather than a global leaderboard full of unverifiable numbers.</p>
+
+  <h2>Why we built it this way</h2>
+  <p>We wanted a click test with three properties. <strong>Honest measurement</strong> — the technical choices above, made deliberately rather than inherited from a tutorial. <strong>Instant and free</strong> — no sign-up, no app, nothing between you and the button. And <strong>private by default</strong>: everything runs locally in your browser. Your clicks and scores are never uploaded to any server; your personal best lives in your browser's <code>localStorage</code> on your own device, which is also why clearing your browser data resets it. There's no account system because the test doesn't need to know who you are.</p>
+  <p>The rest — the ranks, achievements, streaks, and score sharing — exists because a measurement tool is more fun when it's a little bit of a game. None of it changes the math.</p>
+  <p>If you're curious where all this clicking obsession came from in the first place, our <a href="/articles/history-of-click-speed-tests.html">history of click speed tests</a> traces it back to Minecraft PvP and the Kohi server. Otherwise: <a href="/">the button is right here</a>. See what you score.</p>
+
+  <h2>Keep reading</h2>
+  <ul>
+    <li><a href="/articles/history-of-click-speed-tests.html">The history of click speed tests: from Kohi to CPS culture</a></li>
+    <li><a href="/articles/clicking-techniques.html">Clicking techniques explained: regular, jitter, butterfly, and drag clicking</a></li>
+    <li><a href="/articles/what-is-a-good-cps.html">What's a good CPS score? Averages, human limits, and what actually matters</a></li>
+    <li><a href="/">Take the click speed test</a></li>
+  </ul>
+</main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> cpsboost.com</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>
