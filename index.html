@@ -68,14 +68,33 @@
   </div>
 
   <div class="game-panel" id="game-panel">
-    <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
-      <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
-      <button class="mode-btn" type="button" data-mode="5">5 sec</button>
-      <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10 sec</button>
-      <button class="mode-btn" type="button" data-mode="30">30 sec</button>
-      <button class="mode-btn" type="button" data-mode="60">60 sec</button>
-      <button class="mode-btn" type="button" data-mode="100clicks">100 clicks</button>
+    <div class="score-strip" aria-hidden="true">
+      <div class="score-cell score-cell--1up">
+        <span class="score-cap">1UP</span>
+        <span class="score-val" id="score-1up">00000</span>
+      </div>
+      <div class="score-cell score-cell--credit">
+        <span class="score-credit blink" id="score-credit">FREE PLAY</span>
+      </div>
+      <div class="score-cell score-cell--hi">
+        <span class="score-cap">HI-SCORE</span>
+        <span class="score-val" id="score-hi">00000</span>
+      </div>
     </div>
+
+    <div class="mode-select">
+      <span class="mode-select-caption">▸ Select Mode</span>
+      <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
+        <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
+        <button class="mode-btn" type="button" data-mode="5">5 sec</button>
+        <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10 sec</button>
+        <button class="mode-btn" type="button" data-mode="30">30 sec</button>
+        <button class="mode-btn" type="button" data-mode="60">60 sec</button>
+        <button class="mode-btn" type="button" data-mode="100clicks">100 clicks</button>
+      </div>
+    </div>
+
+    <div class="announce" id="announce" aria-hidden="true"></div>
 
     <div id="play-view" class="view-transition">
       <div class="stat-row">
@@ -100,12 +119,19 @@
         <div class="target-hint" id="target-hint"></div>
       </div>
 
+      <div class="super-meter" aria-hidden="true">
+        <span class="super-cap">Super</span>
+        <div class="super-track"><div class="super-fill" id="super-fill"></div></div>
+        <span class="super-max" id="super-max">MAX</span>
+      </div>
+
       <div class="controls-row">
         <button id="start-btn" class="primary" type="button">Start</button>
       </div>
     </div>
 
     <div class="results-panel view-transition" id="results-panel" hidden>
+      <div class="grade-stamp" id="result-grade" aria-hidden="true"></div>
       <div class="result-emoji" id="result-emoji" aria-hidden="true">🐢</div>
       <div class="rating" id="result-rating"></div>
       <div class="stars" id="result-stars" aria-hidden="true"></div>
