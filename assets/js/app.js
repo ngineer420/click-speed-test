@@ -372,6 +372,7 @@
   const BEST_CLICKS_KEY = "cbt-best-clicks";
   const score1up = document.getElementById("score-1up");
   const scoreHi = document.getElementById("score-hi");
+  const scoreCredit = document.getElementById("score-credit");
   const superFill = document.getElementById("super-fill");
   const superMeter = document.querySelector(".super-meter");
   const announceEl = document.getElementById("announce");
@@ -394,6 +395,11 @@
   function setSuper(heat) {
     if (superFill) superFill.style.width = Math.round(heat * 100) + "%";
     if (superMeter) superMeter.classList.toggle("is-max", heat >= 0.999);
+  }
+  // FREE PLAY is an attract-mode credit indicator — like a real cabinet it
+  // shows while idle/attract and disappears once the round is actually running.
+  function setCreditVisible(show) {
+    if (scoreCredit) scoreCredit.style.visibility = show ? "" : "hidden";
   }
 
   let announceTimer = null;
@@ -504,6 +510,7 @@
     statCps.textContent = "0.0";
     updateScoreStrip();
     setSuper(0);
+    setCreditVisible(true);
     if (superMeter) superMeter.classList.remove("is-max");
     if (resultGrade) resultGrade.classList.remove("show");
     if (announceEl) announceEl.classList.remove("show");
@@ -538,6 +545,7 @@
 
   function beginCountdown() {
     state = "countdown";
+    setCreditVisible(false);
     startBtn.disabled = true;
     clickTarget.disabled = true;
     clickTarget.className = "state-countdown";
@@ -735,6 +743,7 @@
     if (superMeter) superMeter.classList.remove("is-max");
     startBtn.disabled = false;
     startBtn.textContent = "Start";
+    setCreditVisible(true);
     showAnnounce(isTimedMode() ? "Time Up!" : "Finish!");
 
     const finalElapsedMs = isTimedMode() ? durationMs() : elapsedMs;

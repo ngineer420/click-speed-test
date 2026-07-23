@@ -45,11 +45,14 @@ Shared arcade chrome (see `styles.css`): CRT scanline + vignette overlay
 
 Added on top of the real game — **presentation only, never touches scoring**:
 
-- **`1UP / FREE PLAY / HI-SCORE` score strip** at the top of the game panel.
+- **`SCORE / FREE PLAY / HI-SCORE` score strip** at the top of the game panel.
   The arcade "score" is **total clicks** (points), zero-padded to 5 digits;
   `HI-SCORE` is the **most clicks landed in any run** (`cbt-best-clicks`), NOT
-  the best CPS. `1UP` counts up live during a run. "FREE PLAY" is the classic
-  cabinet nod for a free game — it blinks.
+  the best CPS. SCORE counts up live during a run. (Label is "SCORE", not "1UP"
+  — "1UP" reads as an extra-life indicator, which doesn't fit a click count.)
+  **FREE PLAY** is a real attract-mode credit indicator: it blinks while idle
+  and **disappears once a run is actually running** (`setCreditVisible`), like a
+  cabinet set to free play.
 - **`▸ SELECT MODE`** menu caption over the mode pills (the mode row is the
   game's menu).
 - **CRT bezel** on `.game-panel`: dark border + inset shadow + `::after`
