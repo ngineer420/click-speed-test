@@ -377,6 +377,45 @@
   const superMeter = document.querySelector(".super-meter");
   const announceEl = document.getElementById("announce");
   const resultGrade = document.getElementById("result-grade");
+  const hpRival = document.getElementById("hp-rival");
+  const comboMeter = document.getElementById("combo-meter");
+  const comboNum = document.getElementById("combo-num");
+
+  // The RIVAL fighter's health drains as you land clicks — empty it before time
+  // runs out for a K.O. Pure flavour on top of the real CPS test; koTarget is
+  // scaled per mode so it takes ~6 CPS to K.O. regardless of duration.
+  let rivalHp = 100;
+  let rivalDamage = 2;
+  function renderRival() { if (hpRival) hpRival.style.width = Math.max(0, rivalHp) + "%"; }
+  function setCombo(n) {
+    if (!comboMeter) return;
+    if (n >= 2) {
+      if (comboNum) comboNum.textContent = n;
+      comboMeter.classList.add("show");
+      comboMeter.classList.remove("pop");
+      void comboMeter.offsetWidth;
+      comboMeter.classList.add("pop");
+    } else {
+      comboMeter.classList.remove("show", "pop");
+    }
+  }
+  function spawnHitSpark(e) {
+    const rect = clickTarget.getBoundingClientRect();
+    const hasCoords = typeof e.clientX === "number" && e.isPrimary !== false;
+    const x = hasCoords ? e.clientX - rect.left : rect.width / 2;
+    const y = hasCoords ? e.clientY - rect.top : rect.height / 2;
+    const s = document.createElement("span");
+    s.className = "hit-spark";
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+    clickTarget.appendChild(s);
+    let removed = false;
+    const rm = () => { if (removed) return; removed = true; s.remove(); };
+    s.addEventListener("animationend", rm);
+    setTimeout(rm, 400);
+    const sparks = clickTarget.querySelectorAll(".hit-spark");
+    if (sparks.length > 6) sparks[0].remove();
+  }
 
   function getBestClicks() {
     const raw = parseInt(localStorage.getItem(BEST_CLICKS_KEY), 10);
@@ -511,6 +550,9 @@
     updateScoreStrip();
     setSuper(0);
     setCreditVisible(true);
+    rivalHp = 100;
+    renderRival();
+    setCombo(0);
     if (superMeter) superMeter.classList.remove("is-max");
     if (resultGrade) resultGrade.classList.remove("show");
     if (announceEl) announceEl.classList.remove("show");
@@ -588,6 +630,12 @@
     statCps.textContent = "0.0";
     updateScoreStrip();
     setSuper(0);
+    rivalHp = 100;
+    // ~6 CPS should K.O. the rival regardless of mode length.
+    var koTarget = isTimedMode() ? Math.max(10, 6 * (durationMs() / 1000)) : 60;
+    rivalDamage = 100 / koTarget;
+    renderRival();
+    setCombo(0);
     tick();
   }
 
@@ -651,6 +699,10 @@
     clickTarget.style.setProperty("--heat", heat.toFixed(2));
     setSuper(heat);
     updateScoreStrip();
+    rivalHp = Math.max(0, rivalHp - rivalDamage);
+    renderRival();
+    setCombo(comboCount);
+    spawnHitSpark(e);
 
     playClickTick(comboCount * 8);
 
@@ -744,7 +796,8 @@
     startBtn.disabled = false;
     startBtn.textContent = "Start";
     setCreditVisible(true);
-    showAnnounce(isTimedMode() ? "Time Up!" : "Finish!");
+    setCombo(0);
+    showAnnounce(rivalHp <= 0 ? "K.O.!" : (isTimedMode() ? "Time Up!" : "Finish!"));
 
     const finalElapsedMs = isTimedMode() ? durationMs() : elapsedMs;
     finalCpsValue = computeCps(clicks, finalElapsedMs);
