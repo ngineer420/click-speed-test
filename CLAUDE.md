@@ -41,35 +41,50 @@ Shared arcade chrome (see `styles.css`): CRT scanline + vignette overlay
 **marquee sign** (`.hero-sign`), **pixel-corners** notched panels, chunky
 `box-shadow` "cabinet" buttons that depress on `:active`.
 
-## Arcade HUD (the "ARCADE CABINET HUD" block in styles.css / helpers in app.js)
+## CLICK FIGHTER — the full cabinet + CRT fighting-game overhaul
 
-Added on top of the real game — **presentation only, never touches scoring**:
+The page is NOT a webpage with a centered card; it is a rendered **arcade
+cabinet** (`.cabinet`) — a real re-imagining, not a facelift. Structure (see the
+"CLICK FIGHTER" block appended to `styles.css`):
 
-- **`SCORE / FREE PLAY / HI-SCORE` score strip** at the top of the game panel.
-  The arcade "score" is **total clicks** (points), zero-padded to 5 digits;
-  `HI-SCORE` is the **most clicks landed in any run** (`cbt-best-clicks`), NOT
-  the best CPS. SCORE counts up live during a run. (Label is "SCORE", not "1UP"
-  — "1UP" reads as an extra-life indicator, which doesn't fit a click count.)
-  **FREE PLAY** is a real attract-mode credit indicator: it blinks while idle
-  and **disappears once a run is actually running** (`setCreditVisible`), like a
-  cabinet set to free play.
-- **`▸ SELECT MODE`** menu caption over the mode pills (the mode row is the
-  game's menu).
-- **CRT bezel** on `.game-panel`: dark border + inset shadow + `::after`
-  vignette. ⚠️ `.game-panel` has a pixel-corners `clip-path`, which **clips any
-  OUTER `box-shadow`** — build depth from `border` + `inset` shadow + the
-  vignette pseudo, never an outer glow ring.
-- **SUPER meter** (`.super-meter`): a fighting-game charge gauge bound to the
-  existing click "heat" (rolling CPS / `HEAT_TARGET_CPS`). Fills as you click
-  fast; `.is-max` at full.
-- **Announce slam** (`.announce`): a beveled, skewed, outlined italic word that
-  slams in — "FIGHT!" when the countdown ends (replaces the old "GO!"),
-  "TIME UP!" (timed modes) / "FINISH!" (100-click) on end. Auto-hides after
-  ~0.9s (so it doesn't cover the CPS result).
-- **Letter GRADE stamp** (`.grade-stamp`): S/A/B/C/D/E from final CPS, stamped
-  on the results panel (shown ~260ms after finish so it animates on reveal).
-- Beveled announce/grade text = `-webkit-text-stroke` + `paint-order: stroke
-  fill` + hard offset `text-shadow` + `skewX`. That's the SFII "announce" look.
+- **`.marquee`** — backlit banner up top with the beveled "CLICK **FIGHTER**"
+  logo (text-stroke + hard shadow) and a scanline sheen.
+- **`.crt`** — a molded monitor bezel (gradient plastic, corner-screw pseudos)
+  wrapping **`.crt-screen`** (id `game-panel`): the screen, with a curvature
+  vignette (`::after`), inner glow, and a glass-glare overlay (`.crt-glare`).
+  The screen plays the match.
+- **`.fight-hud`** — a 3-column SFII HUD: **YOU** *Power* bar (left, cyan→gold,
+  id `super-fill`, the old SUPER gauge) · a big **round timer** (center, id
+  `stat-time`) · **RIVAL** *Health* bar (right, `#hp-rival`, a skewed
+  parallelogram that drains as you click). Both `.hp` bars are `skewX(-16deg)`.
+- **`.combo-meter`** (`#combo-num`) — a big beveled "N HITS" counter that pops
+  on ≥2-combos. **`.fight-stage`** holds the glowing hit-orb (`#click-target`);
+  each click throws a **`.hit-spark`** burst.
+- **`.deck`** — an angled (`perspective`+`rotateX`) control panel below the CRT:
+  the mode row as chunky beveled arcade buttons, a big illuminated round
+  **START** button (`.start-btn`), a coin-door detail, and a `.player-card`
+  (rank + XP bar, ids `xp-rank-label` / `xp-progress-label` / `xp-bar-fill`).
+- **Announce slams** (`.announce`, beveled/skewed/outlined italic): "FIGHT!" on
+  go, and on end **"K.O.!"** if you drained the rival's health, else "TIME UP!"
+  (timed) / "FINISH!" (100-click). **Letter GRADE** (`.grade-stamp`, S–E from
+  CPS) stamps the results.
+- **FREE PLAY** credit indicator blinks while idle and hides once a run is
+  running (`setCreditVisible`). Arcade "SCORE" = total clicks (not "1UP", which
+  reads as lives); HI-SCORE (`#score-hi`) = most clicks in any run
+  (`cbt-best-clicks`).
+
+**The RIVAL fight is pure flavour** layered on the real test: `rivalHp` drains
+by `rivalDamage` per click (`koTarget` scaled per mode so ~6 CPS K.O.s
+regardless of duration). It never feeds the CPS math. Beveled announce/grade
+text = `-webkit-text-stroke` + `paint-order: stroke fill` + hard `text-shadow` +
+`skewX` (the SFII "announce" look). Every animation has a
+`prefers-reduced-motion` fallback.
+
+Note: the old `.game-panel` / `.hero` / `.score-strip` / pixel-corners styles
+still exist in `styles.css` above the overhaul block but are largely superseded
+— `.crt-screen` overrides the reused `#game-panel`. The **sibling game sites are
+NOT yet reimagined to this depth** (they still have the lighter arcade-HUD
+pass); bringing them up to a full genre-cabinet is the follow-up.
 
 ## Hard rules (don't regress)
 

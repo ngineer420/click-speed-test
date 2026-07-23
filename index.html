@@ -57,78 +57,47 @@
 </header>
 
 <main id="main">
-  <div class="hero">
-    <div class="hero-sign"><h1>Click Speed Test</h1></div>
-    <p>How many clicks per second (CPS) can you hit? Pick a mode, hit start, and click as fast as you can.</p>
-    <p class="trust-line">Free, no sign-up<span class="dot">•</span>Works on desktop &amp; mobile<span class="dot">•</span>Personal best saved locally</p>
-    <div class="xp-bar-wrap">
-      <div class="xp-bar-label"><span class="xp-rank" id="xp-rank-label">Casual Clicker</span><span id="xp-progress-label">0 / 100 XP</span></div>
-      <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar-fill"></div></div>
-    </div>
-  </div>
-
-  <div class="game-panel" id="game-panel">
-    <div class="score-strip" aria-hidden="true">
-      <div class="score-cell score-cell--1up">
-        <span class="score-cap">Score</span>
-        <span class="score-val" id="score-1up">00000</span>
-      </div>
-      <div class="score-cell score-cell--credit">
-        <span class="score-credit blink" id="score-credit">FREE PLAY</span>
-      </div>
-      <div class="score-cell score-cell--hi">
-        <span class="score-cap">HI-SCORE</span>
-        <span class="score-val" id="score-hi">00000</span>
-      </div>
+  <div class="cabinet">
+    <div class="marquee">
+      <div class="marquee-logo"><span class="mq-1">Click</span><span class="mq-2">Fighter</span></div>
+      <div class="marquee-sub">Clicks-Per-Second Showdown · cpsboost.com</div>
     </div>
 
-    <div class="mode-select">
-      <span class="mode-select-caption">▸ Select Mode</span>
-      <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
-        <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
-        <button class="mode-btn" type="button" data-mode="5">5 sec</button>
-        <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10 sec</button>
-        <button class="mode-btn" type="button" data-mode="30">30 sec</button>
-        <button class="mode-btn" type="button" data-mode="60">60 sec</button>
-        <button class="mode-btn" type="button" data-mode="100clicks">100 clicks</button>
-      </div>
-    </div>
+    <div class="crt">
+      <div class="crt-screen" id="game-panel">
+        <div class="fight-hud">
+          <div class="fighter fighter--you">
+            <div class="fighter-tag"><span class="ftag-name">You</span><span class="ftag-score">Score <b id="score-1up">00000</b></span></div>
+            <div class="hp super-meter"><i class="hp-fill hp-fill--power" id="super-fill"></i></div>
+            <div class="hp-cap">Power <b id="super-max">Max</b></div>
+          </div>
 
-    <div class="announce" id="announce" aria-hidden="true"></div>
+          <div class="round-timer">
+            <div class="rt-num" id="stat-time">10</div>
+            <div class="rt-label" id="stat-time-label">Time</div>
+          </div>
 
-    <div id="play-view" class="view-transition">
-      <div class="stat-row">
-        <div class="stat-box">
-          <div class="stat-label">Clicks</div>
-          <div class="stat-value" id="stat-clicks">0</div>
+          <div class="fighter fighter--rival">
+            <div class="fighter-tag"><span class="ftag-score">Hi <b id="score-hi">00000</b></span><span class="ftag-name">Rival</span></div>
+            <div class="hp"><i class="hp-fill hp-fill--health" id="hp-rival"></i></div>
+            <div class="hp-cap">Health</div>
+          </div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label" id="stat-time-label">Time left</div>
-          <div class="stat-value" id="stat-time">10.0</div>
+
+        <div class="credit-line"><span class="blink" id="score-credit">Free Play</span></div>
+        <div class="combo-meter" id="combo-meter" aria-hidden="true"><b id="combo-num">0</b><span class="combo-word">Hits</span></div>
+        <div class="announce" id="announce" aria-hidden="true"></div>
+
+        <div id="play-view" class="view-transition">
+          <div class="fight-stage">
+            <button id="click-target" class="state-idle" type="button" aria-label="Click target — press Start first">Press Start</button>
+            <div class="target-hint" id="target-hint"></div>
+          </div>
+          <div class="mini-stats">
+            <div class="mini"><span class="mini-k">Hits</span><span class="mini-v" id="stat-clicks">0</span></div>
+            <div class="mini"><span class="mini-k">CPS</span><span class="mini-v" id="stat-cps">0.0</span></div>
+          </div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">CPS</div>
-          <div class="stat-value" id="stat-cps">0.0</div>
-        </div>
-      </div>
-
-      <div class="target-wrap">
-        <button id="click-target" class="state-idle" type="button" aria-label="Click target — press Start first">
-          Press Start
-        </button>
-        <div class="target-hint" id="target-hint"></div>
-      </div>
-
-      <div class="super-meter" aria-hidden="true">
-        <span class="super-cap">Super</span>
-        <div class="super-track"><div class="super-fill" id="super-fill"></div></div>
-        <span class="super-max" id="super-max">MAX</span>
-      </div>
-
-      <div class="controls-row">
-        <button id="start-btn" class="primary" type="button">Start</button>
-      </div>
-    </div>
 
     <div class="results-panel view-transition" id="results-panel" hidden>
       <div class="grade-stamp" id="result-grade" aria-hidden="true"></div>
@@ -171,6 +140,31 @@
       <div class="controls-row">
         <button id="share-btn" class="primary" type="button">Copy result</button>
         <button id="retry-btn" type="button">Try again</button>
+      </div>
+    </div>
+      </div>
+      <div class="crt-glare" aria-hidden="true"></div>
+    </div>
+
+    <div class="deck">
+      <div class="deck-modes">
+        <span class="deck-label">Select Mode</span>
+        <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
+          <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
+          <button class="mode-btn" type="button" data-mode="5">5s</button>
+          <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10s</button>
+          <button class="mode-btn" type="button" data-mode="30">30s</button>
+          <button class="mode-btn" type="button" data-mode="60">60s</button>
+          <button class="mode-btn" type="button" data-mode="100clicks">100</button>
+        </div>
+      </div>
+      <div class="deck-center">
+        <button id="start-btn" class="start-btn" type="button"><span class="start-ring"></span><span class="start-text">Start</span></button>
+        <div class="coin-door" aria-hidden="true"><span class="coin-slot"></span>Insert Coin · Free Play</div>
+      </div>
+      <div class="player-card">
+        <div class="pc-top"><span class="pc-rank" id="xp-rank-label">Casual Clicker</span><span class="pc-xp" id="xp-progress-label">0 / 100 XP</span></div>
+        <div class="pc-bar"><div class="pc-bar-fill" id="xp-bar-fill"></div></div>
       </div>
     </div>
   </div>
