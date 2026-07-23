@@ -365,6 +365,71 @@
   let lastClickAt = 0;
   let recentClickTimes = [];
 
+  /* ---------- arcade cabinet HUD (score strip, super gauge, announce, grade) ----------
+     Pure presentation on top of the real game — none of this feeds the CPS
+     calculation. The arcade "score" is total clicks (points); HI-SCORE is the
+     most clicks landed in any run. SUPER mirrors the existing click "heat".  */
+  const BEST_CLICKS_KEY = "cbt-best-clicks";
+  const score1up = document.getElementById("score-1up");
+  const scoreHi = document.getElementById("score-hi");
+  const superFill = document.getElementById("super-fill");
+  const superMeter = document.querySelector(".super-meter");
+  const announceEl = document.getElementById("announce");
+  const resultGrade = document.getElementById("result-grade");
+
+  function getBestClicks() {
+    const raw = parseInt(localStorage.getItem(BEST_CLICKS_KEY), 10);
+    return Number.isFinite(raw) && raw > 0 ? raw : 0;
+  }
+  function setBestClicks(n) {
+    try { localStorage.setItem(BEST_CLICKS_KEY, String(n)); } catch (e) { /* ignore */ }
+  }
+  let bestClicksCache = getBestClicks();
+
+  function pad5(n) { return String(Math.max(0, n | 0)).padStart(5, "0"); }
+  function updateScoreStrip() {
+    if (score1up) score1up.textContent = pad5(clicks);
+    if (scoreHi) scoreHi.textContent = pad5(Math.max(bestClicksCache, clicks));
+  }
+  function setSuper(heat) {
+    if (superFill) superFill.style.width = Math.round(heat * 100) + "%";
+    if (superMeter) superMeter.classList.toggle("is-max", heat >= 0.999);
+  }
+
+  let announceTimer = null;
+  function showAnnounce(text) {
+    if (!announceEl) return;
+    announceEl.innerHTML = '<span class="announce-text"></span>';
+    announceEl.firstChild.textContent = text;
+    announceEl.classList.remove("show");
+    void announceEl.offsetWidth; // restart the slam animation
+    announceEl.classList.add("show");
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => announceEl.classList.remove("show"), 900);
+  }
+
+  function gradeForCps(cps) {
+    if (cps >= 12) return "S";
+    if (cps >= 10) return "A";
+    if (cps >= 8) return "B";
+    if (cps >= 6) return "C";
+    if (cps >= 4) return "D";
+    return "E";
+  }
+  function showGrade(cps) {
+    if (!resultGrade) return;
+    const g = gradeForCps(cps);
+    resultGrade.textContent = g;
+    resultGrade.setAttribute("data-grade", g);
+    resultGrade.classList.remove("show");
+    void resultGrade.offsetWidth;
+    resultGrade.classList.add("show");
+  }
+  function playFightStinger() {
+    playTone(330, 0, 0.12, "square", 0.06);
+    playTone(494, 0.09, 0.18, "square", 0.06);
+  }
+
   function isTimedMode() {
     return mode !== "100clicks";
   }
@@ -437,6 +502,11 @@
     startBtn.textContent = "Start";
     statClicks.textContent = "0";
     statCps.textContent = "0.0";
+    updateScoreStrip();
+    setSuper(0);
+    if (superMeter) superMeter.classList.remove("is-max");
+    if (resultGrade) resultGrade.classList.remove("show");
+    if (announceEl) announceEl.classList.remove("show");
     if (isTimedMode()) {
       statTimeLabel.textContent = "Time left";
       statTime.textContent = parseInt(mode, 10).toFixed(1);
@@ -483,10 +553,12 @@
       } else {
         clearInterval(countdownTimer);
         countdownTimer = null;
-        clickTarget.textContent = "GO!";
+        clickTarget.textContent = "";
         targetHint.textContent = "";
         pulseTarget();
-        countdownRunTimer = setTimeout(startRun, 220);
+        showAnnounce("Fight!");
+        playFightStinger();
+        countdownRunTimer = setTimeout(startRun, 260);
       }
     }, 700);
   }
@@ -506,6 +578,8 @@
     clickTarget.textContent = "CLICK!";
     statClicks.textContent = "0";
     statCps.textContent = "0.0";
+    updateScoreStrip();
+    setSuper(0);
     tick();
   }
 
@@ -567,6 +641,8 @@
     const rollingCps = recentClickTimes.length / (HEAT_WINDOW_MS / 1000);
     const heat = Math.max(0, Math.min(1, rollingCps / HEAT_TARGET_CPS));
     clickTarget.style.setProperty("--heat", heat.toFixed(2));
+    setSuper(heat);
+    updateScoreStrip();
 
     playClickTick(comboCount * 8);
 
@@ -655,11 +731,15 @@
     clickTarget.className = "state-finished";
     clickTarget.textContent = "Done!";
     clickTarget.style.setProperty("--heat", "0");
+    setSuper(0);
+    if (superMeter) superMeter.classList.remove("is-max");
     startBtn.disabled = false;
     startBtn.textContent = "Start";
+    showAnnounce(isTimedMode() ? "Time Up!" : "Finish!");
 
     const finalElapsedMs = isTimedMode() ? durationMs() : elapsedMs;
     finalCpsValue = computeCps(clicks, finalElapsedMs);
+    setTimeout(function () { showGrade(finalCpsValue); }, 260);
     const rating = getRating(finalCpsValue);
     const meta = RATING_META[rating] || RATING_META["Getting Started"];
 
@@ -667,6 +747,8 @@
     const isNewBest = finalCpsValue > best;
     const isFirstBest = best === 0;
     if (isNewBest) setBest(finalCpsValue);
+    if (clicks > bestClicksCache) { setBestClicks(clicks); bestClicksCache = clicks; }
+    updateScoreStrip();
 
     resultRating.textContent = rating;
     resultEmoji.textContent = meta.emoji;

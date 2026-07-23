@@ -916,3 +916,203 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 24px 20px 60px; }
   .unlock-toast { animation: none !important; }
   body::before { display: none; }
 }
+
+/* ============================================================
+   ARCADE CABINET HUD — Street Fighter II / CPS-2-era fighting-game
+   layer. This cabinet's genre flavour = FIGHTING GAME: a persistent
+   1UP/HI-SCORE strip, a SELECT MODE menu, a CRT-bezel screen, a SUPER
+   charge gauge, beveled announce "slams" (FIGHT! / TIME UP!), and a
+   post-match letter GRADE. Shared arcade language with the sibling
+   game sites; the fighting-game specifics live here.
+   NOTE: .game-panel carries a pixel-corners clip-path, which clips any
+   OUTER box-shadow — so the bezel is a dark border + inset depth +
+   vignette pseudo, never an outer glow ring.
+   ============================================================ */
+
+/* --- CRT monitor bezel around the play area --- */
+.game-panel {
+  position: relative;
+  background:
+    radial-gradient(120% 85% at 50% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 58%),
+    var(--bg-raised);
+  border: 4px solid var(--bg-inset);
+  box-shadow: inset 0 0 60px -16px rgba(0, 0, 0, .8);
+}
+.game-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(118% 130% at 50% 45%, transparent 60%, rgba(0, 0, 0, .3) 100%);
+  z-index: 0;
+}
+.game-panel > * { position: relative; z-index: 1; }
+
+/* --- score strip: 1UP · FREE PLAY · HI-SCORE --- */
+.score-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-family: var(--mono);
+}
+.score-cell { display: flex; flex-direction: column; gap: 3px; }
+.score-cell--hi { align-items: flex-end; text-align: right; }
+.score-cell--credit { align-self: center; }
+.score-cap {
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+.score-cell--hi .score-cap { color: var(--cyan); text-shadow: 0 0 8px var(--cyan-glow); }
+.score-val {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.score-cell--hi .score-val { text-shadow: 0 0 10px var(--cyan-glow); }
+.score-credit {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+.blink { animation: arcade-blink 1.05s steps(1) infinite; }
+@keyframes arcade-blink { 0%, 55% { opacity: 1; } 55.01%, 100% { opacity: 0; } }
+
+/* --- SELECT MODE menu caption --- */
+.mode-select-caption {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan-glow);
+  margin-bottom: 7px;
+}
+
+/* --- idle attract-mode pulse on the start target --- */
+#click-target.state-idle { animation: idle-attract 1.7s ease-in-out infinite; }
+@keyframes idle-attract {
+  0%, 100% { box-shadow: 0 12px 40px -12px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 12px 0 var(--accent-glow); }
+  50% { box-shadow: 0 12px 40px -12px color-mix(in srgb, var(--accent) 78%, transparent), 0 0 36px 5px var(--accent-glow); }
+}
+
+/* --- SUPER charge gauge (fighting-game super meter) --- */
+.super-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 300px;
+  margin: 2px auto 14px;
+}
+.super-cap {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  flex: 0 0 auto;
+}
+.super-track {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.super-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--accent-2) 55%, var(--accent));
+  box-shadow: 0 0 12px var(--cyan-glow);
+  transition: width .18s ease-out;
+}
+.super-max {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  color: var(--accent-2);
+  opacity: 0;
+  transition: opacity .15s ease;
+  flex: 0 0 auto;
+}
+.super-meter.is-max .super-max { opacity: 1; animation: arcade-blink .5s steps(1) infinite; }
+.super-meter.is-max .super-fill { background: linear-gradient(90deg, var(--accent-2), #fff 50%, var(--accent-2)); }
+
+/* --- beveled announce slam: FIGHT! / TIME UP! / FINISH! --- */
+.announce {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+}
+.announce.show { opacity: 1; }
+.announce .announce-text {
+  font-family: var(--sans);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(40px, 10vw, 78px);
+  text-transform: uppercase;
+  letter-spacing: -.01em;
+  color: var(--accent-2);
+  -webkit-text-stroke: 2px var(--accent-contrast);
+  paint-order: stroke fill;
+  text-shadow: 5px 5px 0 var(--accent-dim), 0 0 30px var(--accent-glow);
+  transform: skewX(-8deg);
+  animation: announce-slam .5s cubic-bezier(.2, 1.4, .4, 1);
+}
+@keyframes announce-slam {
+  0% { transform: skewX(-8deg) scale(2.4); opacity: 0; }
+  55% { transform: skewX(-8deg) scale(.92); opacity: 1; }
+  100% { transform: skewX(-8deg) scale(1); opacity: 1; }
+}
+
+/* --- post-match letter GRADE stamp --- */
+.grade-stamp {
+  display: none;
+  font-family: var(--sans);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 62px;
+  line-height: 1;
+  color: var(--accent-2);
+  -webkit-text-stroke: 3px var(--accent-contrast);
+  paint-order: stroke fill;
+  text-shadow: 4px 4px 0 var(--accent-dim), 0 0 26px var(--accent-glow);
+  margin-bottom: 2px;
+}
+.grade-stamp.show { display: block; animation: grade-stamp-in .45s cubic-bezier(.2, 1.4, .4, 1); }
+.grade-stamp[data-grade="S"] { color: #fff; }
+@keyframes grade-stamp-in {
+  0% { transform: scale(2.2) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(.9) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #click-target.state-idle,
+  .blink,
+  .super-meter.is-max .super-max { animation: none; }
+  .announce .announce-text,
+  .grade-stamp.show { animation: none; }
+}
