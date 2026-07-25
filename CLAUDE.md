@@ -15,9 +15,10 @@ client-side; nothing is uploaded.
 - `assets/css/styles.css` — the entire design system in one file.
 - `privacy.html` / `terms.html` — required for ad networks; keep them working.
 
-Serve locally with any static server (`python3 -m http.server 8000`). No
-`?v=` cache-bust convention here (unlike some sibling sites) — GitHub Pages
-serves `max-age=600`, so a redeploy is visible within ~10 min.
+Serve locally with any static server (`python3 -m http.server 8000`). **A
+`?v=` cache-bust convention is now in use** (`styles.css?v=N` / `app.js?v=N`
+on every page) — see the pixel-art overhaul section at the bottom. Bump it on
+any coupled HTML+CSS/JS change. GitHub Pages serves `max-age=600`.
 
 ## Design language — the arcade cabinet
 
@@ -99,9 +100,12 @@ pass); bringing them up to a full genre-cabinet is the follow-up.
   `ca-pub-7560786263587509`). NEVER add `.ad-slot` divs or manual units.
 - **Respect `prefers-reduced-motion`** — every animation added must have a
   reduce fallback (the file already gates the arcade ones).
-- **Zero external requests.** No webfonts, CDNs, or beacons. The arcade feel is
-  CSS-only. Sound is synthesized live via WebAudio (`playTone` and friends) —
-  no audio files — and is mute-toggleable + persisted (`cbt-sound-muted`).
+- **Zero third-party requests.** No CDNs or beacons. The one webfont
+  (`assets/fonts/pressstart2p.woff2`, the pixel font) is **self-hosted /
+  same-origin**, so the privacy intent of the rule holds — no external font
+  fetch. The rest of the arcade feel is CSS-only. Sound is synthesized live via
+  WebAudio (`playTone` and friends) — no audio files — and is mute-toggleable +
+  persisted (`cbt-sound-muted`).
 - The `erabb.it` 🐇 mark is the portfolio signature — leave it last in `<body>`,
   flush to the corner, `cursor: default`.
 
@@ -116,6 +120,54 @@ pass); bringing them up to a full genre-cabinet is the follow-up.
 Work in a worktree under `.claude/worktrees/`, open a PR, merge when Max says
 (he's been saying "merge as they land" for this batch). Never push straight to
 `main`. Verify visually with a real headless-Chrome render of the idle screen,
-and force the results/announce state via a throwaway preview (strip `app.js`,
-un-hide `#results-panel`, add `.show` to `.announce`/`.grade-stamp`) since the
-`--screenshot` flag can't drive the game.
+and force the mid-fight + results/announce state via throwaway previews (strip
+`app.js`, set inline widths on `#super-fill`/`#hp-rival`, add `.show`+content to
+`.announce`/`.combo-meter`/`#result-grade`, un-hide `#results-panel`) since the
+`--screenshot` flag can't drive the game. **Serve over HTTP** — the app uses
+absolute `/assets/...` paths, so `file://` won't load the CSS/font.
+
+## PIXEL-ART CLICK FIGHTER overhaul (supersedes the sections above)
+
+cpsboost was rebuilt from the earlier "web-slick" CLICK FIGHTER pass (smooth
+gradients, soft glows, a bold *sans* logo with `-webkit-text-stroke`/`skewX`
+outlines) into a **genuine pixel-art cabinet** (bar: metekamil.com). The DOM
+structure (`.cabinet` → `.marquee` → `.crt`/`.crt-screen` → `.deck`) and the
+fighting-game mechanics are unchanged — this was a CSS conversion. Key shifts:
+
+- **Self-hosted pixel font** `assets/fonts/pressstart2p.woff2` (Press Start 2P,
+  OFL) via `@font-face "PixArc"`, applied to ALL arcade chrome (logo, HUD
+  labels, timer, combo, announce, grade, buttons, player card, results). This is
+  the one deliberate exception to "system-fonts only" — it is **same-origin**,
+  so it still makes **no third-party request**. Body/FAQ prose stays a normal
+  system font — the pixel font is arcade chrome only.
+- **Pixel-art discipline**: FLAT colours, HARD pixel edges (layered `box-shadow`
+  borders like `0 0 0 4px #000, 0 0 0 8px #ff2d6b`, `border-radius:0`),
+  `image-rendering: pixelated`, hard offset `text-shadow` (e.g. `3px 3px 0
+  #000`). NO smooth gradients on text/bars, NO `-webkit-text-stroke`/`skewX`, NO
+  blurred glows, NO thin 1px borders. An animated diagonal-stripe backdrop
+  (`stripe-scroll`) on `.crt-screen`; hard horizontal scanline `::after`.
+- **Fixed-palette CRT**: the cabinet interior hardcodes bright pink `#ff2d6b` /
+  gold `#ffd60a` / cyan `#00e0ff` (NOT the theme `var(--accent)` etc.) so the
+  arcade screen stays vivid in BOTH light and dark page themes. The surrounding
+  page chrome (header/footer/About) still respects the theme.
+- **Fighting-game identity kept + made pixel** (distinct from reflexzap's
+  best-of-5 duel *pips*): YOU **Power** bar (cyan flat) vs RIVAL **Health** bar
+  (pink flat) — both now rectangular black-boxed flat fills, no skew/gradient;
+  big **HITS** combo (`#combo-num`); pixel **hit-sparks** (a `clip-path` star,
+  not a soft radial); pixel `FIGHT!`/`TIME UP!`/`K.O.!` **announce slams** (flat,
+  hard offset shadow, `steps()` scale — no skew); a tilted pixel letter
+  **GRADE** stamp. The hit target (`#click-target`) is a chunky flat pixel block
+  with a hard 3D `box-shadow` "depth" — NOTE it is `disabled` while idle, so it
+  carries `#click-target:disabled { opacity:1 !important }` to stop the base
+  `button:disabled` opacity from letting the CRT stripes bleed through it.
+- **Cache-bust adopted**: `styles.css?v=` / `app.js?v=` on **every** page
+  (index, 404, privacy, terms, articles/*). **Bump the `?v=` on any coupled
+  HTML+CSS/JS change** or cached visitors get new HTML with stale CSS and the
+  page renders as raw unstyled text (this exact bug hit cpsboost before).
+  Currently `?v=2`.
+- All the ID contracts app.js relies on (`click-target`, `start-btn`,
+  `mode-row`/`mode-btn`, `stat-*`, `score-*`, `super-fill`, `hp-rival`,
+  `combo-num`, `announce`, `result-grade`, `result-*`, `xp-*`, `chip-*`) are
+  preserved. The CPS math (`computeCps`/`getRating` between the CPS-MATH
+  markers) and the `pointerdown`-only click counting are untouched — the whole
+  HUD/health/combo/super/grade layer remains pure flavour.
