@@ -109,6 +109,25 @@ pass); bringing them up to a full genre-cabinet is the follow-up.
 - The `erabb.it` 🐇 mark is the portfolio signature — leave it last in `<body>`,
   flush to the corner, `cursor: default`.
 
+## Friend challenge links (URL state)
+
+A shared result is a **URL**, not a dead text blob. `#share-btn` copies
+`https://cpsboost.com/?cps=<score>&mode=<mode>`; opening that link preselects
+the friend's mode, shows `#challenge-banner` on the CRT with their score as the
+number to beat, and renders `#challenge-verdict` (`.is-win` / `.is-loss`) on the
+results panel once you finish.
+
+- `cps` — float, must be finite and within `0 < cps <= 100`, else no challenge.
+- `mode` — must be one of `CHALLENGE_MODES` (`5`/`10`/`30`/`60`/`100clicks`),
+  else falls back to `10`.
+- **Validate every param before use.** A hand-edited or hostile query string
+  must only ever degrade to "no challenge" — it must never configure a broken
+  run or render unescaped text (the banner is set via `textContent`).
+- `applyChallenge()` runs **before** `resetToIdle(false)` at init, otherwise the
+  round timer renders the previous mode's duration.
+- `finalMode` snapshots the mode the finished run was played in, so the share
+  link can't drift if the mode selector is touched afterwards.
+
 ## localStorage keys
 
 `cbt-theme`, `cbt-sound-muted`, `cbt-profile` (XP/level/streak/achievements),
@@ -164,7 +183,7 @@ fighting-game mechanics are unchanged — this was a CSS conversion. Key shifts:
   (index, 404, privacy, terms, articles/*). **Bump the `?v=` on any coupled
   HTML+CSS/JS change** or cached visitors get new HTML with stale CSS and the
   page renders as raw unstyled text (this exact bug hit cpsboost before).
-  Currently `?v=2`.
+  Currently `?v=3`.
 - All the ID contracts app.js relies on (`click-target`, `start-btn`,
   `mode-row`/`mode-btn`, `stat-*`, `score-*`, `super-fill`, `hp-rival`,
   `combo-num`, `announce`, `result-grade`, `result-*`, `xp-*`, `chip-*`) are

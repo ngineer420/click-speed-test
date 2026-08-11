@@ -19,7 +19,7 @@
 <meta name="twitter:image" content="https://cpsboost.com/assets/og-image.png">
 
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/css/styles.css?v=2">
+<link rel="stylesheet" href="/assets/css/styles.css?v=3">
 
 <script type="application/ld+json">
 {
@@ -85,6 +85,10 @@
         </div>
 
         <div class="credit-line"><span class="blink" id="score-credit">Free Play</span></div>
+        <div class="challenge-banner" id="challenge-banner" hidden>
+          <span class="cb-kicker">Challenge</span>
+          <span class="cb-text" id="challenge-text"></span>
+        </div>
         <div class="combo-meter" id="combo-meter" aria-hidden="true"><b id="combo-num">0</b><span class="combo-word">Hits</span></div>
         <div class="announce" id="announce" aria-hidden="true"></div>
 
@@ -108,6 +112,7 @@
       <div class="cps-big" id="result-cps">0.0<span class="unit"> CPS</span></div>
       <p class="tagline" id="result-tagline"></p>
       <div class="best-line" id="best-line"></div>
+      <div class="challenge-verdict" id="challenge-verdict" hidden></div>
 
       <div class="gauge" id="result-gauge">
         <div class="gauge-track">
@@ -138,7 +143,7 @@
       </div>
 
       <div class="controls-row">
-        <button id="share-btn" class="primary" type="button">Copy result</button>
+        <button id="share-btn" class="primary" type="button">Copy challenge link</button>
         <button id="retry-btn" type="button">Try again</button>
       </div>
     </div>
@@ -236,6 +241,6 @@
 
 <a href="https://erabb.it" class="erabbit-mark" aria-label="erabb.it"><img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐇</text></svg>" width="10" height="10" alt=""></a>
 
-<script src="/assets/js/app.js?v=2"></script>
+<script src="/assets/js/app.js?v=3"></script>
 </body>
 </html>
