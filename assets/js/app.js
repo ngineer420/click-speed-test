@@ -360,6 +360,7 @@
   let countdownTimer = null;
   let countdownRunTimer = null;
   let finalCpsValue = 0;
+  let finalMode = "10"; // mode the finished run was played in, for the share link
   let comboCount = 0;
   let maxCombo = 0;
   let lastClickAt = 0;
@@ -801,6 +802,7 @@
 
     const finalElapsedMs = isTimedMode() ? durationMs() : elapsedMs;
     finalCpsValue = computeCps(clicks, finalElapsedMs);
+    finalMode = mode;
     setTimeout(function () { showGrade(finalCpsValue); }, 260);
     const rating = getRating(finalCpsValue);
     const meta = RATING_META[rating] || RATING_META["Getting Started"];
@@ -828,6 +830,7 @@
 
     renderGauge(finalCpsValue);
     comparisonText.textContent = getComparisonText(finalCpsValue);
+    renderChallengeVerdict(finalCpsValue);
 
     const history = pushHistory(finalCpsValue);
     renderHistory(history);
@@ -965,16 +968,102 @@
     localStorage.setItem(PB_KEY, String(cps));
   }
 
+  /* ---------- friend challenge links ----------
+     A shared result is a URL, not a dead text blob: `?cps=8.4&mode=10` opens
+     the test already set to the friend's mode, with their score shown as the
+     number to beat and a verdict on the results panel. Every param is
+     validated before use, so a hand-edited or hostile query string can only
+     ever degrade to "no challenge" — it can never configure a broken run. */
+
+  const SITE_URL = "https://cpsboost.com/";
+  const CHALLENGE_MODES = ["5", "10", "30", "60", "100clicks"];
+  const challengeBanner = document.getElementById("challenge-banner");
+  const challengeText = document.getElementById("challenge-text");
+  const challengeVerdict = document.getElementById("challenge-verdict");
+  let challenge = null; // { cps, mode } once a valid challenge link is opened
+
+  function challengeModeLabel(m) {
+    return m === "100clicks" ? "100-click" : m + "-second";
+  }
+
+  function readChallengeFromUrl() {
+    let params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (e) {
+      return null;
+    }
+    const cps = parseFloat(params.get("cps"));
+    // Reject anything not a plausible human score so a junk link can't render
+    // an absurd target (or NaN) into the banner.
+    if (!Number.isFinite(cps) || cps <= 0 || cps > 100) return null;
+    const m = params.get("mode");
+    return { cps: cps, mode: CHALLENGE_MODES.indexOf(m) !== -1 ? m : "10" };
+  }
+
+  function buildChallengeUrl(cps, m) {
+    return SITE_URL + "?cps=" + cps.toFixed(1) + "&mode=" + encodeURIComponent(m);
+  }
+
+  function selectMode(m) {
+    const btn = modeRow.querySelector('.mode-btn[data-mode="' + m + '"]');
+    if (!btn) return;
+    mode = m;
+    Array.from(modeRow.querySelectorAll(".mode-btn")).forEach((b) => {
+      b.setAttribute("aria-pressed", String(b === btn));
+    });
+    updateModeIndicator();
+  }
+
+  function applyChallenge() {
+    challenge = readChallengeFromUrl();
+    if (!challenge) return;
+    selectMode(challenge.mode);
+    if (challengeText) {
+      challengeText.textContent =
+        "A friend hit " + challenge.cps.toFixed(1) + " CPS in the " +
+        challengeModeLabel(challenge.mode) + " test. Beat it.";
+    }
+    if (challengeBanner) challengeBanner.hidden = false;
+  }
+
+  function renderChallengeVerdict(cps) {
+    if (!challengeVerdict) return;
+    if (!challenge) {
+      challengeVerdict.hidden = true;
+      return;
+    }
+    const diff = cps - challenge.cps;
+    const tie = Math.abs(diff) <= 0.049;
+    challengeVerdict.hidden = false;
+    challengeVerdict.classList.toggle("is-win", diff > 0.049);
+    challengeVerdict.classList.toggle("is-loss", diff < -0.049);
+    if (diff > 0.049) {
+      challengeVerdict.textContent =
+        "Challenge beaten — " + diff.toFixed(1) + " CPS clear of their " +
+        challenge.cps.toFixed(1) + ".";
+    } else if (tie) {
+      challengeVerdict.textContent =
+        "Dead heat — you matched their " + challenge.cps.toFixed(1) + " CPS exactly.";
+    } else {
+      challengeVerdict.textContent =
+        "Challenge missed by " + Math.abs(diff).toFixed(1) + " CPS — they hit " +
+        challenge.cps.toFixed(1) + ". Try again.";
+    }
+  }
+
   /* ---------- share / copy result ---------- */
 
   shareBtn.addEventListener("click", () => {
     const profile = loadProfile();
-    const rank = titleForLevel(levelForXp(profile.totalXP));
+    const level = levelForXp(profile.totalXP);
+    const rank = titleForLevel(level);
+    const url = buildChallengeUrl(finalCpsValue, finalMode);
     const text =
       "I hit " + finalCpsValue.toFixed(1) + " CPS on Click Speed Test (" + rank + ", LV " +
-      levelForXp(profile.totalXP) + ")! Try to beat me: https://cpsboost.com/";
+      level + ")! Beat me: " + url;
     copyText(text);
-    showToast("Copied!");
+    showToast("Challenge link copied!");
   });
 
   function copyText(text) {
@@ -1010,6 +1099,7 @@
 
   /* ---------- init ---------- */
 
+  applyChallenge(); // before resetToIdle so the timer shows the challenge's mode
   resetToIdle(false);
   requestAnimationFrame(updateModeIndicator);
   renderStatusChips(loadProfile());
