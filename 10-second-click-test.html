@@ -19,7 +19,8 @@
 <meta name="twitter:image" content="https://cpsboost.com/assets/og-image.png">
 
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/css/styles.css?v=4">
+<link rel="stylesheet" href="/assets/css/styles.css?v=5">
+<script src="/assets/js/toolbar.js?v=5" defer></script>
 
 <script type="application/ld+json">
 {
@@ -67,18 +68,41 @@
   </div>
 </header>
 
-<nav class="test-nav" aria-label="Click speed tests">
-  <div class="test-nav-inner">
-    <div class="test-nav-row">
-      <span class="test-nav-label">Duration</span>
-      <div class="test-nav-links"><a href="/">Standard</a><a href="/1-second-click-test">1 sec</a><a href="/5-second-click-test">5 sec</a><a href="/10-second-click-test" aria-current="page">10 sec</a><a href="/30-second-click-test">30 sec</a><a href="/60-second-click-test">60 sec</a><a href="/100-click-test">100 clicks</a></div>
+<!-- nav:start -->
+<nav class="toolbar" aria-label="Tools">
+  <details class="tb-menu">
+    <summary class="tb-trigger" aria-label="All 8 tests">
+      <span class="tb-glyph" aria-hidden="true">&#9636;</span>
+      <span class="tb-label">All 8<span class="tb-label-long"> tests</span></span>
+    </summary>
+    <div class="tb-sheet is-flat">
+      <ul>
+        <li><a href="/" aria-current="true">Standard Click Test</a></li>
+        <li><a href="/jitter-click-test">Jitter Click Test</a></li>
+        <li><a href="/butterfly-click-test">Butterfly Click Test</a></li>
+        <li><a href="/drag-click-test">Drag Click Test</a></li>
+        <li><a href="/kohi-click-test">Kohi Click Test</a></li>
+        <li><a href="/spacebar-counter">Spacebar Counter</a></li>
+        <li><a href="/right-click-test">Right Click Test</a></li>
+        <li><a href="/double-click-test">Double Click Test</a></li>
+      </ul>
+      <p class="tb-hub"><a href="/">All 6 test durations →</a></p>
     </div>
-    <div class="test-nav-row">
-      <span class="test-nav-label">Technique</span>
-      <div class="test-nav-links"><a href="/jitter-click-test">Jitter</a><a href="/butterfly-click-test">Butterfly</a><a href="/drag-click-test">Drag</a><a href="/kohi-click-test">Kohi</a><a href="/spacebar-counter">Spacebar</a><a href="/right-click-test">Right click</a><a href="/double-click-test">Double click</a></div>
-    </div>
-  </div>
+  </details>
+  <div class="tb-scrim"></div>
+  <ul class="tb-rail">
+    <li><a href="/" aria-current="true">Standard</a></li>
+    <li><a href="/jitter-click-test">Jitter</a></li>
+    <li><a href="/butterfly-click-test">Butterfly</a></li>
+    <li><a href="/drag-click-test">Drag</a></li>
+    <li><a href="/kohi-click-test">Kohi</a></li>
+    <li><a href="/spacebar-counter">Spacebar</a></li>
+    <li><a href="/right-click-test">Right click</a></li>
+    <li><a href="/double-click-test">Double click</a></li>
+  </ul>
 </nav>
+<!-- nav:end -->
+
 
 <main id="main">
   <div class="cabinet">
@@ -179,16 +203,19 @@
 
     <div class="deck">
       <div class="deck-modes">
-        <span class="deck-label">Select Mode</span>
-        <div class="mode-row" id="mode-row" role="group" aria-label="Test duration">
-          <div class="mode-indicator" id="mode-indicator" aria-hidden="true"></div>
-          <button class="mode-btn" type="button" data-mode="1">1s</button>
-          <button class="mode-btn" type="button" data-mode="5">5s</button>
-          <button class="mode-btn" type="button" data-mode="10" aria-pressed="true">10s</button>
-          <button class="mode-btn" type="button" data-mode="30">30s</button>
-          <button class="mode-btn" type="button" data-mode="60">60s</button>
-          <button class="mode-btn" type="button" data-mode="100clicks">100</button>
-        </div>
+        <!-- sizechips:start -->
+        <nav class="size-chips" aria-label="Test duration">
+          <span class="size-chips-label" id="size-chips-label">Duration</span>
+          <ul aria-labelledby="size-chips-label">
+            <li><a href="/1-second-click-test" class="chip" data-target="1">1s</a></li>
+            <li><a href="/5-second-click-test" class="chip" data-target="5">5s</a></li>
+            <li><a href="/10-second-click-test" class="chip" data-target="10" aria-current="page">10s</a></li>
+            <li><a href="/30-second-click-test" class="chip" data-target="30">30s</a></li>
+            <li><a href="/60-second-click-test" class="chip" data-target="60">60s</a></li>
+            <li><a href="/100-click-test" class="chip" data-target="100clicks">100</a></li>
+          </ul>
+        </nav>
+        <!-- sizechips:end -->
       </div>
       <div class="deck-center">
         <button id="start-btn" class="start-btn" type="button"><span class="start-ring"></span><span class="start-text">Start</span></button>
@@ -259,6 +286,6 @@
 
 <a href="https://erabb.it" class="erabbit-mark" aria-label="erabb.it"><img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐇</text></svg>" width="10" height="10" alt=""></a>
 
-<script src="/assets/js/app.js?v=4"></script>
+<script src="/assets/js/app.js?v=5"></script>
 </body>
 </html>

@@ -126,6 +126,31 @@ declares itself in the body tag:
   pure half. app.js `return`s right after `module.exports` when there is no
   `document`, which is what makes it requirable in Node.
 
+## Navigation — one toolbar, one data file
+
+The nav is the portfolio toolbar (spec: ngineer420.github.io#13, reference
+implementation: photoshrink#7). **Never hand-edit the nav in 32 files.**
+
+- `tools/nav_data.py` is the site's TOOLS/GROUPS/HUBS/VARIANTS list and the
+  only per-site file. `tools/sync_nav.py` is generic and copied verbatim from
+  photoshrink — do not fork it.
+- `python3 tools/sync_nav.py` rewrites every `<!-- nav:start -->…<!-- nav:end -->`
+  and `<!-- sizechips:start -->…<!-- sizechips:end -->` region in place.
+  `--check` exits nonzero on drift; run it before pushing.
+- The eight **tier-1** destinations (the standard test + the seven techniques)
+  are the rail and the sheet. The six **tier-2** duration pages are neither:
+  they are the deck's `Duration` chips, which are real `<a href>` links that a
+  plain click switches in place with `history.replaceState`. That is what stops
+  the same six links appearing twice on one screen.
+- Only `standard`-mode pages carry the chips region; a technique page's
+  durations have no URL of their own and stay `.mode-btn` buttons. `app.js`
+  drives both shapes through one handler.
+- `assets/js/toolbar.js` is the toolbar's own enhancement script (fades,
+  Escape, click-outside). It is a separate file because 404, privacy, terms
+  and the five articles carry the toolbar but not the game engine.
+- Nothing in the chrome is sticky, and the header must stay under ~54px so
+  header + 45px bar lands under the 100px mobile chrome budget.
+
 ### Keyboard surfaces — do not reintroduce the trap
 
 The spacebar and right-click pages must never swallow the keys a keyboard-only
@@ -233,9 +258,10 @@ fighting-game mechanics are unchanged — this was a CSS conversion. Key shifts:
   (index, 404, privacy, terms, articles/*). **Bump the `?v=` on any coupled
   HTML+CSS/JS change** or cached visitors get new HTML with stale CSS and the
   page renders as raw unstyled text (this exact bug hit cpsboost before).
-  Currently `?v=4`.
+  Currently `?v=5`.
 - All the ID contracts app.js relies on (`click-target`, `start-btn`,
-  `mode-row`/`mode-btn`, `stat-*`, `score-*`, `super-fill`, `hp-rival`,
+  `mode-row`/`mode-btn` (technique pages only — see the nav section),
+  `stat-*`, `score-*`, `super-fill`, `hp-rival`,
   `combo-num`, `announce`, `result-grade`, `result-*`, `xp-*`, `chip-*`) are
   preserved. The CPS math (`computeCps`/`getRating` between the CPS-MATH
   markers) and the `pointerdown`-only click counting are untouched — the whole
