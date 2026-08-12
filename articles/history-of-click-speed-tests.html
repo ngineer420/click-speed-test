@@ -7,10 +7,12 @@
 <meta name="description" content="How click speed tests went from an obscure Minecraft PvP tool to a whole genre of browser games. The Kohi server origins, why CPS mattered in combat, and how the metric took on a life of its own.">
 <link rel="canonical" href="https://cpsboost.com/articles/history-of-click-speed-tests.html">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/assets/css/styles.css?v=4">
+<link rel="stylesheet" href="/assets/css/styles.css?v=5">
+<script src="/assets/js/toolbar.js?v=5" defer></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7560786263587509" crossorigin="anonymous"></script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="/" aria-label="cpsboost.com home">
@@ -19,19 +21,42 @@
     </a>
   </div>
 </header>
-<nav class="test-nav" aria-label="Click speed tests">
-  <div class="test-nav-inner">
-    <div class="test-nav-row">
-      <span class="test-nav-label">Duration</span>
-      <div class="test-nav-links"><a href="/" aria-current="page">Standard</a><a href="/1-second-click-test">1 sec</a><a href="/5-second-click-test">5 sec</a><a href="/10-second-click-test">10 sec</a><a href="/30-second-click-test">30 sec</a><a href="/60-second-click-test">60 sec</a><a href="/100-click-test">100 clicks</a></div>
+
+<!-- nav:start -->
+<nav class="toolbar" aria-label="Tools">
+  <details class="tb-menu">
+    <summary class="tb-trigger" aria-label="All 8 tests">
+      <span class="tb-glyph" aria-hidden="true">&#9636;</span>
+      <span class="tb-label">All 8<span class="tb-label-long"> tests</span></span>
+    </summary>
+    <div class="tb-sheet is-flat">
+      <ul>
+        <li><a href="/">Standard Click Test</a></li>
+        <li><a href="/jitter-click-test">Jitter Click Test</a></li>
+        <li><a href="/butterfly-click-test">Butterfly Click Test</a></li>
+        <li><a href="/drag-click-test">Drag Click Test</a></li>
+        <li><a href="/kohi-click-test">Kohi Click Test</a></li>
+        <li><a href="/spacebar-counter">Spacebar Counter</a></li>
+        <li><a href="/right-click-test">Right Click Test</a></li>
+        <li><a href="/double-click-test">Double Click Test</a></li>
+      </ul>
+      <p class="tb-hub"><a href="/">All 6 test durations →</a></p>
     </div>
-    <div class="test-nav-row">
-      <span class="test-nav-label">Technique</span>
-      <div class="test-nav-links"><a href="/jitter-click-test">Jitter</a><a href="/butterfly-click-test">Butterfly</a><a href="/drag-click-test">Drag</a><a href="/kohi-click-test">Kohi</a><a href="/spacebar-counter">Spacebar</a><a href="/right-click-test">Right click</a><a href="/double-click-test">Double click</a></div>
-    </div>
-  </div>
+  </details>
+  <div class="tb-scrim"></div>
+  <ul class="tb-rail">
+    <li><a href="/">Standard</a></li>
+    <li><a href="/jitter-click-test">Jitter</a></li>
+    <li><a href="/butterfly-click-test">Butterfly</a></li>
+    <li><a href="/drag-click-test">Drag</a></li>
+    <li><a href="/kohi-click-test">Kohi</a></li>
+    <li><a href="/spacebar-counter">Spacebar</a></li>
+    <li><a href="/right-click-test">Right click</a></li>
+    <li><a href="/double-click-test">Double click</a></li>
+  </ul>
 </nav>
-<main class="container-narrow">
+<!-- nav:end -->
+<main id="main" class="container-narrow">
   <h1>The History of Click Speed Tests: From Kohi to CPS Culture</h1>
 
   <p>Ask a competitive Minecraft player from the mid-2010s what their CPS is and you'll get an instant, confident answer, the way a runner knows their mile time. Clicks per second wasn't always a stat anyone tracked, though. The click speed test as we know it grew out of one specific corner of gaming history, and understanding that origin explains a lot about why people still <a href="/">test their click speed</a> today.</p>

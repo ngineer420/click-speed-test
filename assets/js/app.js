@@ -769,10 +769,49 @@
     }, 200);
   }
 
-  /* ---------- mode selection (segmented pill control) ---------- */
+  /* ---------- mode selection ----------
+     The duration selector ships in one of two shapes, decided by whether the
+     durations on this page have URLs of their own (portfolio spec #13):
+
+     - `standard` pages — index and the six duration landing pages — render
+       <a href> chips, because /30-second-click-test really is a page. They are
+       tier-2 siblings of the standard test, so they live here in the deck
+       rather than in the toolbar rail, which is what stopped the same six
+       links appearing twice on one screen.
+     - technique pages render plain buttons, because a 30-second jitter test
+       has no URL; there the duration is only ever a parameter.
+
+     One handler covers both. On the links a plain left-click switches in place
+     and replaceState keeps the URL and the announced identity in step without
+     stacking a history entry per chip; a modified click, or JS off, is a
+     normal navigation and the destination seeds itself from its own body tag. */
+
+  const modeChips = document.querySelector(".size-chips");
+  const modeHost = modeChips || modeRow;
+  const MODE_SEL = "[data-mode],[data-target]";
+
+  function modeEls() {
+    return modeHost ? Array.from(modeHost.querySelectorAll(MODE_SEL)) : [];
+  }
+  function modeOf(el) {
+    return el.dataset.mode || el.dataset.target;
+  }
+  /* A <button> in a group is pressed; a link is the current item in its set.
+     aria-pressed on an anchor is not a valid pairing and is not announced. */
+  function markMode(active) {
+    modeEls().forEach((el) => {
+      const on = el === active;
+      if (el.tagName === "A") {
+        if (on) el.setAttribute("aria-current", "page");
+        else el.removeAttribute("aria-current");
+      } else {
+        el.setAttribute("aria-pressed", String(on));
+      }
+    });
+  }
 
   function updateModeIndicator() {
-    if (!modeIndicator) return;
+    if (!modeIndicator || !modeRow) return;
     const activeBtn = modeRow.querySelector('.mode-btn[aria-pressed="true"]');
     if (!activeBtn) return;
     const rowRect = modeRow.getBoundingClientRect();
@@ -782,17 +821,22 @@
       "translateX(" + (btnRect.left - rowRect.left + modeRow.scrollLeft) + "px)";
   }
 
-  modeRow.addEventListener("click", (e) => {
-    const btn = e.target.closest(".mode-btn");
-    if (!btn || state === "countdown" || state === "running") return;
-    mode = btn.dataset.mode;
-    Array.from(modeRow.querySelectorAll(".mode-btn")).forEach((b) => {
-      b.setAttribute("aria-pressed", String(b === btn));
+  if (modeHost) {
+    modeHost.addEventListener("click", (e) => {
+      const el = e.target.closest(MODE_SEL);
+      if (!el || state === "countdown" || state === "running") return;
+      if (el.tagName === "A") {
+        if (e.defaultPrevented) return;
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        history.replaceState(history.state, "", el.getAttribute("href"));
+      }
+      mode = modeOf(el);
+      markMode(el);
+      updateModeIndicator();
+      resetToIdle(state === "finished");
     });
-    updateModeIndicator();
-    btn.scrollIntoView({ block: "nearest", inline: "nearest" });
-    resetToIdle(state === "finished");
-  });
+  }
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {
@@ -1492,12 +1536,10 @@
   }
 
   function selectMode(m) {
-    const btn = modeRow.querySelector('.mode-btn[data-mode="' + m + '"]');
-    if (!btn) return;
+    const el = modeEls().find((x) => modeOf(x) === m);
+    if (!el) return;
     mode = m;
-    Array.from(modeRow.querySelectorAll(".mode-btn")).forEach((b) => {
-      b.setAttribute("aria-pressed", String(b === btn));
-    });
+    markMode(el);
     updateModeIndicator();
   }
 
