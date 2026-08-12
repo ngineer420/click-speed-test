@@ -21,10 +21,255 @@
 
   /* === CPS-MATH-END === */
 
-  // Exposed for potential reuse / testing; harmless no-op in the browser.
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = { computeCps: computeCps, getRating: getRating };
+  /* === CLICK-ANALYSIS-START ===
+     Every technique page is scored from the SAME array of click timestamps
+     (milliseconds since the run started). These helpers are pure and DOM-free:
+     they take that array and hand back every metric the site knows how to show.
+     Nothing here is per-mode — a variant picks which of these numbers to
+     display, it does not get its own scoring code. */
+
+  const DRAG_BURST_CPS = 15; // the rate a drag-click burst has to reach to count
+  const DOUBLE_FAULT_MS = 80; // gaps below this are faster than a human means to click
+  const HISTOGRAM_BIN_MS = 40;
+  const HISTOGRAM_BINS = 12; // 0-40ms ... 440ms+
+
+  // Gaps between consecutive clicks, in ms. The raw material for every
+  // rhythm-based metric below.
+  function clickIntervals(times) {
+    const out = [];
+    for (let i = 1; i < times.length; i += 1) out.push(times[i] - times[i - 1]);
+    return out;
   }
+
+  // Clicks landed in each whole second of the run. A trailing partial second is
+  // dropped rather than counted as a slow one, which would fake an instability
+  // spike at the end of every test.
+  function perSecondCounts(times, elapsedMs) {
+    const seconds = Math.floor(elapsedMs / 1000);
+    if (seconds < 1) return [];
+    const counts = new Array(seconds).fill(0);
+    times.forEach((t) => {
+      const i = Math.floor(t / 1000);
+      if (i >= 0 && i < seconds) counts[i] += 1;
+    });
+    return counts;
+  }
+
+  // How even the clicking was, 0-100. 100 means every second carried exactly
+  // the same number of clicks. Derived from the coefficient of variation, so a
+  // fast clicker and a slow clicker with the same evenness score the same.
+  function stabilityScore(counts) {
+    if (counts.length < 2) return null;
+    const mean = counts.reduce((a, b) => a + b, 0) / counts.length;
+    if (mean <= 0) return 0;
+    const variance =
+      counts.reduce((s, c) => s + (c - mean) * (c - mean), 0) / counts.length;
+    const cv = Math.sqrt(variance) / mean;
+    return Math.max(0, Math.min(100, Math.round((1 - cv) * 100)));
+  }
+
+  // Best sustained rate over any sliding window (two pointers, O(n)).
+  // The epsilon matters: a click landing exactly one window after the first one
+  // belongs to the NEXT window, and without it float drift lets a steady 6 CPS
+  // run report a peak of 7 purely by fencepost.
+  const WINDOW_EPS = 1e-9;
+  function peakWindowCps(times, windowMs) {
+    if (!times.length) return 0;
+    let best = 0;
+    let start = 0;
+    for (let i = 0; i < times.length; i += 1) {
+      while (times[i] - times[start] >= windowMs - WINDOW_EPS) start += 1;
+      best = Math.max(best, i - start + 1);
+    }
+    return best / (windowMs / 1000);
+  }
+
+  // Two fingers alternating on one button leave a long/short ripple in the
+  // gaps; one finger tapping leaves a flat series. This counts how often
+  // consecutive gaps flip across the median gap. Pure chance sits near 50;
+  // a genuinely alternating rhythm climbs towards 100.
+  function alternationScore(intervals) {
+    if (intervals.length < 4) return null;
+    const sorted = intervals.slice().sort((a, b) => a - b);
+    const half = sorted.length / 2;
+    const median =
+      sorted.length % 2
+        ? sorted[Math.floor(half)]
+        : (sorted[half - 1] + sorted[half]) / 2;
+    let flips = 0;
+    let pairs = 0;
+    for (let i = 1; i < intervals.length; i += 1) {
+      const a = intervals[i - 1] - median;
+      const b = intervals[i] - median;
+      if (a === 0 || b === 0) continue;
+      pairs += 1;
+      if (a > 0 !== b > 0) flips += 1;
+    }
+    return pairs ? Math.round((flips / pairs) * 100) : null;
+  }
+
+  // Drag clicking arrives as short explosions of contacts, not a steady rate,
+  // so counting clusters says more than an average. A cluster is a run of
+  // clicks that at some point hit `thresholdCps` inside `windowMs`; a gap
+  // longer than `breakMs` ends the run. Deliberately an ESTIMATE — the
+  // technique is fuzzy and trivially faked, so nothing here is leaderboard
+  // grade and the UI says so.
+  function burstClusters(times, thresholdCps, windowMs) {
+    const needed = Math.ceil(thresholdCps * (windowMs / 1000));
+    const breakMs = 2000 / thresholdCps;
+    let clusters = 0;
+    let qualified = false;
+    let start = 0;
+    for (let i = 0; i < times.length; i += 1) {
+      if (i > 0 && times[i] - times[i - 1] > breakMs) {
+        qualified = false;
+        start = i;
+      }
+      while (times[i] - times[start] >= windowMs - WINDOW_EPS) start += 1;
+      if (!qualified && i - start + 1 >= needed) {
+        qualified = true;
+        clusters += 1;
+      }
+    }
+    return clusters;
+  }
+
+  // Gap distribution, bucketed. The double-click page plots this: a healthy
+  // switch puts everything in the deliberate range, a failing one drops a
+  // spike into the first bin or two.
+  function intervalHistogram(intervals, binMs, binCount) {
+    const bins = new Array(binCount).fill(0);
+    intervals.forEach((v) => {
+      const i = Math.floor(v / binMs);
+      bins[Math.max(0, Math.min(binCount - 1, i))] += 1;
+    });
+    return bins;
+  }
+
+  function countBelow(intervals, ms) {
+    return intervals.filter((v) => v < ms).length;
+  }
+
+  // The one entry point every mode uses. `times` are ms offsets from the start
+  // of the run, already sorted.
+  function analyzeRun(times, elapsedMs) {
+    const intervals = clickIntervals(times);
+    const counts = perSecondCounts(times, elapsedMs);
+    return {
+      clicks: times.length,
+      cps: computeCps(times.length, elapsedMs),
+      intervals: intervals,
+      perSecond: counts,
+      stability: stabilityScore(counts),
+      peakCps: peakWindowCps(times, 1000),
+      alternation: alternationScore(intervals),
+      bursts: burstClusters(times, DRAG_BURST_CPS, 1000),
+      histogram: intervalHistogram(intervals, HISTOGRAM_BIN_MS, HISTOGRAM_BINS),
+      fastDoubles: countBelow(intervals, DOUBLE_FAULT_MS),
+      fastestGap: intervals.length ? Math.min.apply(null, intervals) : null,
+      medianGap: intervals.length
+        ? (function () {
+            const s = intervals.slice().sort((a, b) => a - b);
+            const h = s.length / 2;
+            return s.length % 2 ? s[Math.floor(h)] : (s[h - 1] + s[h]) / 2;
+          })()
+        : null,
+    };
+  }
+
+  /* === CLICK-ANALYSIS-END === */
+
+  /* ============================= variants =============================
+     ONE engine, thirteen pages. A tool page declares itself with
+     <body data-cps-mode="jitter" data-cps-duration="10">; no attribute means
+     the standard test, which is index.html behaving exactly as it always has.
+
+     A variant chooses the input adapter (mouse button, right button, spacebar),
+     the durations offered, which of the analyzeRun() metrics to surface, and a
+     storage suffix. It never carries scoring code of its own — the numbers all
+     come from analyzeRun() above, so there is exactly one place where a click
+     turns into a result.
+
+     The six duration pages are all the `standard` variant with a different
+     data-cps-duration: a one-second test and a sixty-second test are the same
+     measurement over a different clock, so they share an engine AND a personal
+     best, exactly as the mode buttons always have. Only a genuinely different
+     technique earns a variant row. */
+
+  const ALL_DURATIONS = ["1", "5", "10", "30", "60", "100clicks"];
+
+  const VARIANTS = {
+    standard: {
+      input: "left", durations: ALL_DURATIONS, defaultDuration: "10",
+      readouts: ["peakCps", "stability", "medianGap"], storageSuffix: "",
+    },
+    jitter: {
+      input: "left", durations: ["5", "10", "30"], defaultDuration: "10",
+      readouts: ["stability", "peakCps", "medianGap"], storageSuffix: "-jitter",
+    },
+    butterfly: {
+      input: "left", durations: ["5", "10", "30"], defaultDuration: "10",
+      readouts: ["alternation", "peakCps", "medianGap"], storageSuffix: "-butterfly",
+    },
+    drag: {
+      input: "left", durations: ["5", "10", "30"], defaultDuration: "10",
+      readouts: ["bursts", "peakCps", "fastestGap"], storageSuffix: "-drag",
+    },
+    kohi: {
+      input: "left", durations: ["10"], defaultDuration: "10",
+      readouts: ["peakCps", "stability"], storageSuffix: "-kohi",
+    },
+    spacebar: {
+      input: "space", durations: ["5", "10", "30", "60", "100clicks"], defaultDuration: "10",
+      readouts: ["peakCps", "stability"], storageSuffix: "-spacebar",
+    },
+    rightclick: {
+      input: "right", durations: ["5", "10", "30"], defaultDuration: "10",
+      readouts: ["peakCps", "medianGap"], storageSuffix: "-rightclick",
+    },
+    doubleclick: {
+      input: "left", durations: ["5", "10", "30"], defaultDuration: "10",
+      readouts: ["histogram", "fastDoubles", "fastestGap"], storageSuffix: "-doubleclick",
+    },
+  };
+
+  function resolveVariant(name) {
+    return Object.prototype.hasOwnProperty.call(VARIANTS, name)
+      ? VARIANTS[name]
+      : VARIANTS.standard;
+  }
+
+  // <body data-cps-duration="30"> — must be one the engine actually knows how
+  // to run, or the page falls back to the variant's own default.
+  function resolveDuration(raw, variant) {
+    return ALL_DURATIONS.indexOf(raw) !== -1 ? raw : variant.defaultDuration;
+  }
+
+  // Exposed for reuse / unit tests; harmless no-op in the browser.
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = {
+      computeCps: computeCps,
+      getRating: getRating,
+      clickIntervals: clickIntervals,
+      perSecondCounts: perSecondCounts,
+      stabilityScore: stabilityScore,
+      peakWindowCps: peakWindowCps,
+      alternationScore: alternationScore,
+      burstClusters: burstClusters,
+      intervalHistogram: intervalHistogram,
+      countBelow: countBelow,
+      analyzeRun: analyzeRun,
+      resolveVariant: resolveVariant,
+      resolveDuration: resolveDuration,
+      VARIANTS: VARIANTS,
+    };
+  }
+
+  // Node loads this file for the pure helpers above and stops here; everything
+  // past this point needs a document.
+  if (typeof document === "undefined") return;
+
+  const VARIANT = resolveVariant(document.body.getAttribute("data-cps-mode") || "standard");
 
   /* ============================= theme toggle ============================= */
 
@@ -302,8 +547,13 @@
 
   /* ============================= game state ============================= */
 
-  const PB_KEY = "cbt-best-cps";
-  const HISTORY_KEY = "cbt-history";
+  /* Scores are scoped per variant. Without this a 60-second spacebar run would
+     overwrite the personal best from the 1-second mouse test, and the history
+     strip would compare numbers that were never measuring the same thing. The
+     standard test keeps the original unsuffixed keys so existing visitors keep
+     their scores. */
+  const PB_KEY = "cbt-best-cps" + VARIANT.storageSuffix;
+  const HISTORY_KEY = "cbt-history" + VARIANT.storageSuffix;
   const HISTORY_MAX = 8;
   const AVERAGE_CPS = 6.5; // rough "average person" reference point, used for comparison framing
   const GAUGE_MAX = 12; // visual cap for the slow->superhuman gauge
@@ -351,7 +601,20 @@
   const retryBtn = document.getElementById("retry-btn");
   const toast = document.getElementById("toast");
 
-  let mode = "10"; // "5" | "10" | "30" | "60" | "100clicks"
+  const PAGE_DURATION = resolveDuration(
+    document.body.getAttribute("data-cps-duration"),
+    VARIANT
+  );
+  // Wording, not behaviour — the counter is the same one either way.
+  const INPUT_COPY = {
+    left: { run: "CLICK!", idle: "" },
+    right: { run: "RIGHT-CLICK!", idle: "Right button only, on this panel only." },
+    space: { run: "HIT SPACE", idle: "Spacebar. Escape leaves the test area." },
+  };
+  const RUN_LABEL = (INPUT_COPY[VARIANT.input] || INPUT_COPY.left).run;
+  const IDLE_HINT = (INPUT_COPY[VARIANT.input] || INPUT_COPY.left).idle;
+
+  let mode = PAGE_DURATION; // "1" | "5" | "10" | "30" | "60" | "100clicks"
   let state = "idle"; // idle | countdown | running | finished
   let clicks = 0;
   let startTime = 0;
@@ -360,17 +623,21 @@
   let countdownTimer = null;
   let countdownRunTimer = null;
   let finalCpsValue = 0;
-  let finalMode = "10"; // mode the finished run was played in, for the share link
+  let finalMode = PAGE_DURATION; // mode the finished run was played in, for the share link
   let comboCount = 0;
   let maxCombo = 0;
   let lastClickAt = 0;
   let recentClickTimes = [];
+  // Every hit's offset from the start of the run, in ms. This array is the sole
+  // input to analyzeRun(), so every technique readout on every page is derived
+  // from the same record of what actually happened.
+  let clickTimes = [];
 
   /* ---------- arcade cabinet HUD (score strip, super gauge, announce, grade) ----------
      Pure presentation on top of the real game — none of this feeds the CPS
      calculation. The arcade "score" is total clicks (points); HI-SCORE is the
      most clicks landed in any run. SUPER mirrors the existing click "heat".  */
-  const BEST_CLICKS_KEY = "cbt-best-clicks";
+  const BEST_CLICKS_KEY = "cbt-best-clicks" + VARIANT.storageSuffix;
   const score1up = document.getElementById("score-1up");
   const scoreHi = document.getElementById("score-hi");
   const scoreCredit = document.getElementById("score-credit");
@@ -543,7 +810,7 @@
     clickTarget.textContent = "Press Start";
     clickTarget.disabled = true;
     clickTarget.style.setProperty("--heat", "0");
-    targetHint.textContent = "";
+    targetHint.textContent = IDLE_HINT;
     startBtn.disabled = false;
     startBtn.textContent = "Start";
     statClicks.textContent = "0";
@@ -623,10 +890,15 @@
     maxCombo = 0;
     lastClickAt = 0;
     recentClickTimes = [];
+    clickTimes = [];
     clickTarget.style.setProperty("--heat", "0");
     clickTarget.className = "state-running";
     clickTarget.disabled = false;
-    clickTarget.textContent = "CLICK!";
+    clickTarget.textContent = RUN_LABEL;
+    // The keyboard surface has to be focused to receive keys at all, and a
+    // disabled button cannot hold focus — so it is claimed here, once the
+    // button is live, rather than stolen on page load.
+    if (VARIANT.input === "space") clickTarget.focus();
     statClicks.textContent = "0";
     statCps.textContent = "0.0";
     updateScoreStrip();
@@ -667,11 +939,13 @@
      iOS/Android) unify mouse + touch under the Pointer Events API, so a
      single listener handles both input types without double-counting. The
      `click` listener below is a no-op guard that just prevents any stray
-     synthetic click (fired after pointerup) from doing anything. */
+     synthetic click (fired after pointerup) from doing anything.
 
-  clickTarget.addEventListener("pointerdown", (e) => {
-    if (state !== "running") return;
-    e.preventDefault();
+     The spacebar page swaps that pointer listener for a keydown listener, but
+     every surface funnels into the ONE registerHit() below — there is no
+     second counter and no per-mode copy of this function. */
+
+  function registerHit(e) {
     clicks += 1;
     statClicks.textContent = String(clicks);
 
@@ -681,6 +955,7 @@
 
     const now = performance.now();
     elapsedMs = now - startTime;
+    clickTimes.push(elapsedMs);
     statCps.textContent = computeCps(clicks, elapsedMs).toFixed(1);
 
     // Combo: consecutive clicks within COMBO_WINDOW_MS of each other build a
@@ -717,7 +992,76 @@
     if (!isTimedMode() && clicks >= 100) {
       finishRun();
     }
-  });
+  }
+
+  /* ---------- input surfaces ----------
+     Which physical action counts is variant config, not variant code.
+
+     Accessibility note (same bug class as hardware-checkup#7): the keyboard
+     surfaces must never swallow the keys a keyboard-only visitor needs to get
+     back out. Listeners are bound to the test surface itself rather than the
+     document, only the space key is ever preventDefault()-ed, and Tab is left
+     completely alone — so Shift+Tab still walks back to the nav and Tab still
+     walks forward to the footer. Escape and losing focus both release the
+     surface explicitly. */
+
+  function releaseSurface(message) {
+    if (typeof clickTarget.blur === "function") clickTarget.blur();
+    if (state === "countdown" || state === "running") {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      clearTimeout(countdownRunTimer);
+      countdownRunTimer = null;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      resetToIdle(false);
+      targetHint.textContent = message || "Test cancelled. Press Start to run it again.";
+    }
+  }
+
+  if (VARIANT.input === "space") {
+    clickTarget.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        releaseSurface();
+        return;
+      }
+      if (e.key !== " " && e.code !== "Space" && e.key !== "Spacebar") return;
+      // Stops the page scrolling AND stops the focused button firing its own
+      // synthetic click, which would otherwise be a second count per press.
+      e.preventDefault();
+      // Holding the bar down streams keydown events at the OS auto-repeat rate.
+      // That is not pressing the spacebar, so it does not count.
+      if (e.repeat) return;
+      if (state !== "running") return;
+      registerHit(e);
+    });
+    // Focus left the surface, so keystrokes are going somewhere else now —
+    // finish honestly rather than silently recording a run of zero.
+    clickTarget.addEventListener("focusout", () => {
+      if (state === "running" || state === "countdown") {
+        releaseSurface("Focus left the test area, so the run stopped. Press Start to try again.");
+      }
+    });
+  } else {
+    clickTarget.addEventListener("pointerdown", (e) => {
+      if (state !== "running") return;
+      if (VARIANT.input === "right" && e.pointerType === "mouse" && e.button !== 2) {
+        targetHint.textContent = "Right button only on this test.";
+        return;
+      }
+      e.preventDefault();
+      registerHit(e);
+    });
+  }
+
+  if (VARIANT.input === "right") {
+    // Suppressed on the test surface ONLY — right-click still works normally
+    // everywhere else on the page, including the nav, the copy button and any
+    // link in the article below.
+    clickTarget.addEventListener("contextmenu", (e) => e.preventDefault());
+    clickTarget.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") releaseSurface();
+    });
+  }
 
   /* Floating "COMBO x N" text spawned at the click point — same throwaway-DOM-node
      pattern as spawnRipple, capped the same way so rapid clicking can't pile up nodes. */
@@ -780,6 +1124,134 @@
     if (state === "running" || state === "countdown") e.preventDefault();
   });
 
+  /* ---------- mode readouts ----------
+     Each technique page shows a different set of numbers, but all of them come
+     out of the one analyzeRun() call below. A readout entry says how to LABEL
+     and PHRASE a metric, never how to compute it. Adding a fourteenth page is a
+     row in VARIANTS plus, at most, a row here — never a new scoring function. */
+
+  const readoutBlock = document.getElementById("mode-readout");
+
+  function msLabel(v) {
+    return v === null ? "—" : Math.round(v) + " ms";
+  }
+
+  const READOUTS = {
+    stability: {
+      label: "Stability",
+      value: (a) => (a.stability === null ? "—" : a.stability + "%"),
+      note: (a) =>
+        a.stability === null
+          ? "A run has to cover at least two full seconds before evenness means anything."
+          : a.stability >= 80
+          ? "Held almost perfectly steady — your rate barely moved second to second."
+          : a.stability >= 60
+          ? "Reasonably even, with the usual drift as your forearm tired."
+          : "Spiky: bursts and lulls rather than one held rate. That is the normal shape of an untrained jitter attempt.",
+    },
+    alternation: {
+      label: "Alternation",
+      value: (a) => (a.alternation === null ? "—" : a.alternation + "%"),
+      note: (a) =>
+        a.alternation === null
+          ? "Not enough clicks to read a rhythm — land at least five."
+          : a.alternation >= 65
+          ? "The two-finger rhythm held. Gaps flipped long-short-long the way genuinely alternating fingers do."
+          : a.alternation >= 50
+          ? "Partly alternating. It kept collapsing back into one finger doing the work."
+          : "This does not read as butterfly clicking. The gaps are too uniform — that is one finger tapping, or two fingers landing together.",
+    },
+    bursts: {
+      label: "Burst clusters",
+      value: (a) => String(a.bursts),
+      note: (a) =>
+        a.bursts === 0
+          ? "No stretch reached 15 CPS inside a one-second window, which is where a drag actually starts."
+          : "Separate stretches that crossed 15 CPS. Treat this as an estimate — drag clicking is fuzzy to detect and easy to fake.",
+    },
+    peakCps: {
+      label: "Peak 1s CPS",
+      value: (a) => a.peakCps.toFixed(1),
+      note: () => "Your best single second, found with a sliding window rather than a fixed one.",
+    },
+    medianGap: {
+      label: "Median gap",
+      value: (a) => msLabel(a.medianGap),
+      note: () => "The typical time between two clicks. Halve it and you have your sustained rate.",
+    },
+    fastestGap: {
+      label: "Fastest gap",
+      value: (a) => msLabel(a.fastestGap),
+      note: () => "The shortest time between any two clicks in the run.",
+    },
+    fastDoubles: {
+      label: "Sub-80ms doubles",
+      value: (a) => String(a.fastDoubles),
+      note: (a) =>
+        a.fastDoubles === 0
+          ? "No gaps under 80 ms. Nothing here looks like a switch bouncing."
+          : "Gaps that short are faster than a person means to click. If you were not deliberately double-clicking, that is the signature of a worn mouse switch.",
+    },
+    histogram: {
+      label: "Gap distribution",
+      bars: true,
+      note: () =>
+        "Every gap between two clicks, bucketed in 40 ms steps. A healthy switch puts its weight in the middle; a failing one drops a spike into the first bucket.",
+    },
+  };
+
+  function renderReadouts(analysis) {
+    if (!readoutBlock || !VARIANT.readouts.length) return;
+    readoutBlock.innerHTML = "";
+    VARIANT.readouts.forEach((key) => {
+      const spec = READOUTS[key];
+      if (!spec) return;
+      const row = document.createElement("div");
+      row.className = "readout";
+
+      const label = document.createElement("div");
+      label.className = "readout-k";
+      label.textContent = spec.label;
+      row.appendChild(label);
+
+      if (spec.bars) {
+        row.appendChild(buildHistogramBars(analysis.histogram));
+      } else {
+        const value = document.createElement("div");
+        value.className = "readout-v";
+        value.textContent = spec.value(analysis);
+        row.appendChild(value);
+      }
+
+      const note = document.createElement("p");
+      note.className = "readout-note";
+      note.textContent = spec.note(analysis);
+      row.appendChild(note);
+
+      readoutBlock.appendChild(row);
+    });
+    readoutBlock.hidden = false;
+  }
+
+  function buildHistogramBars(bins) {
+    const wrap = document.createElement("div");
+    wrap.className = "readout-hist";
+    const max = Math.max.apply(null, bins.concat([1]));
+    bins.forEach((count, i) => {
+      const from = i * HISTOGRAM_BIN_MS;
+      const col = document.createElement("div");
+      col.className = "hist-col" + (i === 0 && count ? " is-fault" : "");
+      col.title =
+        (i === bins.length - 1 ? from + "ms+" : from + "-" + (from + HISTOGRAM_BIN_MS) + "ms") +
+        ": " + count;
+      const bar = document.createElement("i");
+      bar.style.height = Math.round((count / max) * 100) + "%";
+      col.appendChild(bar);
+      wrap.appendChild(col);
+    });
+    return wrap;
+  }
+
   /* ---------- finish / results ---------- */
 
   function finishRun() {
@@ -803,6 +1275,7 @@
     const finalElapsedMs = isTimedMode() ? durationMs() : elapsedMs;
     finalCpsValue = computeCps(clicks, finalElapsedMs);
     finalMode = mode;
+    renderReadouts(analyzeRun(clickTimes, finalElapsedMs));
     setTimeout(function () { showGrade(finalCpsValue); }, 260);
     const rating = getRating(finalCpsValue);
     const meta = RATING_META[rating] || RATING_META["Getting Started"];
@@ -976,7 +1449,9 @@
      ever degrade to "no challenge" — it can never configure a broken run. */
 
   const SITE_URL = "https://cpsboost.com/";
-  const CHALLENGE_MODES = ["5", "10", "30", "60", "100clicks"];
+  // A challenge is only meaningful in a mode this page can actually run, so the
+  // whitelist is the page's own duration list rather than a global one.
+  const CHALLENGE_MODES = VARIANT.durations;
   const challengeBanner = document.getElementById("challenge-banner");
   const challengeText = document.getElementById("challenge-text");
   const challengeVerdict = document.getElementById("challenge-verdict");
@@ -998,11 +1473,22 @@
     // an absurd target (or NaN) into the banner.
     if (!Number.isFinite(cps) || cps <= 0 || cps > 100) return null;
     const m = params.get("mode");
-    return { cps: cps, mode: CHALLENGE_MODES.indexOf(m) !== -1 ? m : "10" };
+    return { cps: cps, mode: CHALLENGE_MODES.indexOf(m) !== -1 ? m : PAGE_DURATION };
+  }
+
+  // The link points back at the page the run was played on, so a jitter score
+  // cannot be handed out as a challenge on the standard test. Taken from the
+  // live path rather than the variant table, so the flat `.html` alias and the
+  // clean directory URL both hand out the clean directory URL.
+  function currentPagePath() {
+    return location.pathname
+      .replace(/index\.html$/, "")
+      .replace(/\.html$/, "/")
+      .replace(/^\/+/, "");
   }
 
   function buildChallengeUrl(cps, m) {
-    return SITE_URL + "?cps=" + cps.toFixed(1) + "&mode=" + encodeURIComponent(m);
+    return SITE_URL + currentPagePath() + "?cps=" + cps.toFixed(1) + "&mode=" + encodeURIComponent(m);
   }
 
   function selectMode(m) {
@@ -1099,6 +1585,7 @@
 
   /* ---------- init ---------- */
 
+  selectMode(PAGE_DURATION); // the page's own duration, before anything overrides it
   applyChallenge(); // before resetToIdle so the timer shows the challenge's mode
   resetToIdle(false);
   requestAnimationFrame(updateModeIndicator);
