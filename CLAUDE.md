@@ -13,6 +13,20 @@ client-side; nothing is uploaded.
   (XP/levels/ranks/achievements/streaks), WebAudio sound synth, the game state
   machine, and the arcade HUD layer.
 - `assets/css/styles.css` — the entire design system in one file.
+- `assets/js/percentile.js` — the cited population-percentile engine, ported
+  from reflexzap (`reaction-time-test/assets/js/percentile.js`). The engine is
+  identical. Only `SOURCES` and the six duration models (`CPS_1S` to
+  `CPS_60S` plus `CPS_100_CLICKS`, all from the A Real Me click-test aggregate)
+  belong to this site. Every number in a model traces to the URL in
+  `SOURCES`. Loaded before `app.js` on every test page. `app.js` reads it
+  through `populationNote(cps, durationKey, input)` and renders
+  `#comparison-text` under the gauge. The spacebar and right-click pages get
+  no line: the source measures left clicks only.
+- `assets/js/percentile.test.js` — `node --test` runs it together with
+  `app.test.js`. It checks bounds, monotonicity, that each model reproduces
+  its cited mean and the source's top-tier threshold, that every test page
+  loads `percentile.js` before `app.js`, and that no shipped file claims the
+  percentiles come from this site's visitors.
 - `privacy.html` / `terms.html` — required for ad networks; keep them working.
 
 Serve locally with any static server (`python3 -m http.server 8000`). **A
@@ -258,7 +272,7 @@ fighting-game mechanics are unchanged — this was a CSS conversion. Key shifts:
   (index, 404, privacy, terms, articles/*). **Bump the `?v=` on any coupled
   HTML+CSS/JS change** or cached visitors get new HTML with stale CSS and the
   page renders as raw unstyled text (this exact bug hit cpsboost before).
-  Currently `?v=5`.
+  Currently `?v=6`.
 - All the ID contracts app.js relies on (`click-target`, `start-btn`,
   `mode-row`/`mode-btn` (technique pages only — see the nav section),
   `stat-*`, `score-*`, `super-fill`, `hp-rival`,
