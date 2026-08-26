@@ -246,8 +246,36 @@
   }
 
   // Exposed for reuse / unit tests; harmless no-op in the browser.
+  /* Percentiles come from assets/js/percentile.js — a model fitted to figures
+     published by one large public click-test dataset, cited in that file. They
+     are NOT this site's own visitor data (there is no backend to aggregate
+     one), and nothing rendered from them may imply otherwise. percentile.js is
+     loaded ahead of this script in the page; under Node it is require()d so
+     this helper stays testable. */
+  const PERCENTILE =
+    (typeof globalThis !== "undefined" && globalThis.PercentileEngine) ||
+    (typeof require === "function" ? require("./percentile.js") : null);
+
+  /* The population line under the gauge. Returns null when there is no
+     published population for this run: an unknown duration, or an input
+     surface the source does not measure (spacebar, right click). */
+  function populationNote(cps, durationKey, input) {
+    if (!PERCENTILE || !Number.isFinite(cps)) return null;
+    if (input !== "left") return null;
+    const model = PERCENTILE.modelForDuration(durationKey);
+    if (!model) return null;
+    const source = PERCENTILE.SOURCES.filter(function (s) { return s.id === model.source; })[0];
+    return {
+      text: PERCENTILE.comparisonText(cps, model),
+      percentile: PERCENTILE.formatPercentile(PERCENTILE.percentileForScore(cps, model)),
+      mean: model.mean,
+      source: source || null,
+    };
+  }
+
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
+      populationNote,
       computeCps: computeCps,
       getRating: getRating,
       clickIntervals: clickIntervals,
@@ -555,7 +583,14 @@
   const PB_KEY = "cbt-best-cps" + VARIANT.storageSuffix;
   const HISTORY_KEY = "cbt-history" + VARIANT.storageSuffix;
   const HISTORY_MAX = 8;
-  const AVERAGE_CPS = 6.5; // rough "average person" reference point, used for comparison framing
+  /* The gauge's "average" marker. It sits at the published mean for the run's
+     duration when percentile.js has one, and at the 10 s mean otherwise, so
+     the marker and the population line below it always agree. */
+  const FALLBACK_AVERAGE_CPS = 6.66;
+  function averageCps(durationKey) {
+    const model = PERCENTILE ? PERCENTILE.modelForDuration(durationKey) : null;
+    return model ? model.mean : FALLBACK_AVERAGE_CPS;
+  }
   const GAUGE_MAX = 12; // visual cap for the slow->superhuman gauge
 
   // Flavor layer only — keys must match the exact strings returned by
@@ -1346,7 +1381,7 @@
     bestLine.classList.toggle("is-new-best", isNewBest);
 
     renderGauge(finalCpsValue);
-    comparisonText.textContent = getComparisonText(finalCpsValue);
+    renderComparison(finalCpsValue);
     renderChallengeVerdict(finalCpsValue);
 
     const history = pushHistory(finalCpsValue);
@@ -1404,15 +1439,26 @@
 
   /* ---------- comparison / gauge (context framing for the raw CPS number) ---------- */
 
-  function getComparisonText(cps) {
-    const diff = Math.abs(cps - AVERAGE_CPS).toFixed(1);
-    if (cps >= AVERAGE_CPS + 0.05) {
-      return "You clicked " + diff + " CPS faster than the average person (~" + AVERAGE_CPS.toFixed(1) + " CPS).";
+  /* One sourced sentence under the gauge: where this CPS sits in a published
+     click-test dataset. The link goes to the dataset, never to a claim about
+     other visitors of this site. */
+  function renderComparison(cps) {
+    const note = populationNote(cps, finalMode, VARIANT.input);
+    comparisonText.textContent = "";
+    if (!note) {
+      comparisonText.hidden = true;
+      return;
     }
-    if (cps <= AVERAGE_CPS - 0.05) {
-      return "The average clicker hits ~" + AVERAGE_CPS.toFixed(1) + " CPS — you were " + diff + " CPS behind. Keep practicing!";
+    comparisonText.appendChild(document.createTextNode(note.text + " "));
+    if (note.source) {
+      const a = document.createElement("a");
+      a.href = note.source.url;
+      a.rel = "noopener";
+      a.target = "_blank";
+      a.textContent = "Source: " + note.source.name + ", average " + note.mean.toFixed(2) + " CPS on this test length.";
+      comparisonText.appendChild(a);
     }
-    return "Right on the average clicker's pace (~" + AVERAGE_CPS.toFixed(1) + " CPS).";
+    comparisonText.hidden = false;
   }
 
   function gaugePercent(cps) {
@@ -1421,7 +1467,9 @@
 
   function renderGauge(cps) {
     gaugeMarker.style.left = gaugePercent(cps) + "%";
-    gaugeAvgMarker.style.left = gaugePercent(AVERAGE_CPS) + "%";
+    const avg = averageCps(finalMode);
+    gaugeAvgMarker.style.left = gaugePercent(avg) + "%";
+    gaugeAvgMarker.title = "Average clicker in published click-test data (" + avg.toFixed(2) + " CPS)";
   }
 
   /* ---------- session history (localStorage, same pattern as personal best) ---------- */
